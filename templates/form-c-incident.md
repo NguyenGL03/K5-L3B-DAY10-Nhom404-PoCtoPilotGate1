@@ -114,7 +114,7 @@ người chịu hại thường là bên thứ ba). Định nghĩa đầy đủ 
 | Vì sao người gặp coi đây là lỗi | Shop bàn giao muộn không phải lỗi hãng; S4-05 chưa đủ điều kiện hoàn. Không được biến lỗi LLM thành quyền ghi | Chuyển người đúng nhưng khách vẫn chờ 78 phút > SLA 60 phút | Khoản hoàn hợp lệ không cho phép vượt ngân sách ngày sale nếu thiếu duyệt |
 | Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | Guard đối chiếu tracking/chính sách; nếu chưa xác minh được thì trả quyền cho NV-HANH, không cho fallback tự quy lỗi | Vận hành: gọi người có thẩm quyền, thu hẹp lưu lượng theo năng lực, ưu tiên ca gần SLA; đo chi phí/ROI | Guard kiểm tổng hoàn trước mỗi lần ghi theo trần nhỏ hơn giữa Finance và nhóm; phần vượt chuyển duyệt |
 | Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | Hãng không bị ghi lỗi khi thiếu căn cứ; NV-HANH xác minh ca không chắc chắn, NV-OANH đối soát lỗi đã ghi; trả lời khách theo kết quả xác minh | NV-TUNG nhận cảnh báo → xác nhận hỗ trợ/phạm vi → NV-HANH xử lý ca cũ nhất; chưa đủ năng lực thì dừng nhận thêm, không đẩy vô hạn vào hàng chờ | NV-OANH báo ngân sách → guard giữ khoản vượt → NV-HANH duyệt theo thẩm quyền; đối soát trước hoàn thủ công để tránh trùng |
-| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | Đề xuất C8: fail_open_rate từ events; CHƯA có trong MONITORS, Người 3 cần triển khai và đo | Đã có report queue_wait_max_min, queue_stuck; escalation_rate có sẵn chỉ đo tỷ lệ, không thấy tải dồn; đề xuất C8 peak_review_arrivals_per_hour, chưa triển khai | Đã có report auto_refund_day_max_vnd và ops.refund.finance_daily_budget_vnd; đề xuất C8 auto_refund_budget_excess_vnd theo ngày/seed, chưa triển khai |
+| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | Theo dõi `llm_fallback_rate` từ `events` trong `lab10/monitors.py` (đã triển khai, đo đạt `0.185366` trên S4 so với `0.0` trên `base`). | Theo dõi `queue_over_sla_rate` trong `lab10/monitors.py` (đã triển khai, đạt `0.097561` trên S4 so với `0.0` trên `base`) kết hợp `queue_wait_max_min`, `queue_stuck`. | Theo dõi `auto_refund_day_max_vnd` so với `ops.refund.finance_daily_budget_vnd` (`300.000đ`). |
 
 Yêu cầu: ít nhất **hai lỗi có nguồn khác nhau** ở phần 2, và ít nhất một lỗi được xếp đúng là **lỗi chìm**.
 
@@ -372,14 +372,14 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 | | Chỉ số theo dõi mới của bàn |
 |---|---|
-| **Tên trong `MONITORS`** | |
-| **Bước / hành vi được đo** | |
-| **Thước đo** (một câu, có đơn vị) | |
-| **Dữ liệu** (trường nào của trial, không có nhãn) | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | |
-| **Khung thời gian / ngưỡng báo động** | |
-| **Điểm mù** (chỉ số này KHÔNG thấy gì) | |
-| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | |
+| **Tên trong `MONITORS`** | `llm_fallback_rate` (chính) và `queue_over_sla_rate` (bổ sung cho hàng chờ) |
+| **Bước / hành vi được đo** | Bước `policy_check` rơi vào nhánh dự phòng `llm_fallback` (do lỗi 429 lúc cao điểm); kèm tỉ lệ ca hàng chờ vượt SLA 60 phút hoặc bị ùn. |
+| **Thước đo** (một câu, có đơn vị) | `llm_fallback_rate`: tỉ lệ lượt chạy gặp sự cố 429 và phải rơi vào nhánh `llm_fallback` (đơn vị: tỉ lệ `0..1`, tức `%`). `queue_over_sla_rate`: tỉ lệ lượt chạy bị ùn hoặc chờ duyệt quá 60 phút. |
+| **Dữ liệu** (trường nào của trial, không có nhãn) | `llm_fallback_rate`: duyệt mảng `trial["events"]` tìm sự kiện có `type == "llm_fallback"`. `queue_over_sla_rate`: đọc `trial["queue_stuck"]` và `trial["queue_wait_min"]`. Không dùng nhãn đúng/sai. |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `llm_fallback_rate = số trial có event "llm_fallback" / max(1, len(trials))`. `queue_over_sla_rate = số trial có (queue_stuck == True hoặc queue_wait_min > 60) / max(1, len(trials))`. Ca `queue_wait_min` là `None` được quy về `0` nên vẫn giữ trong mẫu số. |
+| **Khung thời gian / ngưỡng báo động** | Theo cửa sổ 15 phút trong giờ cao điểm (hoặc theo ngày vận hành): báo động trên `#van-hanh-tro-ly` khi `llm_fallback_rate > 5%` hoặc `queue_over_sla_rate > 0%`. |
+| **Điểm mù** (chỉ số này KHÔNG thấy gì) | `llm_fallback_rate` không thấy trường hợp LLM trả về bình thường (không 429) nhưng suy luận sai hoặc nghe theo chỉ thị giả; `queue_over_sla_rate` không thấy chất lượng quyết định của các ca xử lý tự động không qua hàng chờ. |
+| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | `llm_fallback_rate`: bộ nền `0.0` · trên S4 `0.185366` (`18,54%`). `queue_over_sla_rate`: bộ nền `0.0` · trên S4 `0.097561` (`9,76%`). |
 
 ---
 

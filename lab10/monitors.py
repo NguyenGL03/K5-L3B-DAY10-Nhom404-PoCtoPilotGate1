@@ -19,7 +19,27 @@ def escalation_rate(trials):
     return sum(t["status"] == "escalated" for t in trials) / max(1, len(trials))
 
 
+def llm_fallback_rate(trials):
+    """Tỉ lệ lượt chạy gặp sự cố 429 và rơi vào nhánh fallback (ví dụ fail_open)."""
+    hits = sum(
+        any(e.get("type") == "llm_fallback" for e in t.get("events", []))
+        for t in trials
+    )
+    return hits / max(1, len(trials))
+
+
+def queue_over_sla_rate(trials):
+    """Tỉ lệ lượt chạy bị ùn hàng chờ hoặc chờ người duyệt vượt quá 60 phút."""
+    hits = sum(
+        bool(t.get("queue_stuck")) or ((t.get("queue_wait_min") or 0) > 60)
+        for t in trials
+    )
+    return hits / max(1, len(trials))
+
+
 MONITORS = {
     "escalation_rate": escalation_rate,     # có sẵn; KHÔNG tính là metric mới của đội
+    "llm_fallback_rate": llm_fallback_rate,
+    "queue_over_sla_rate": queue_over_sla_rate,
 }
 STARTER_MONITORS = ("escalation_rate",)
