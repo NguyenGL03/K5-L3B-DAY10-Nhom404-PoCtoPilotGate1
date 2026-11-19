@@ -1,8 +1,6 @@
 # Phiếu C · Sự cố và quyết định v2 · Khối 3 (phút 125–200)
 
-**Bàn:** K5-L3B-DAY10-Nhom404-PoCtoPilotGate1 · **Thẻ đã bốc:** S4
-
-**Người thực hiện câu 3.1:** Nguyễn Quang Tiệp. Phân tích trước sửa dựa trên lần tự kiểm tra `R-S4-grade-20261119-164040-b75241`, các report/traces trong `runs/` và các lệnh trace ghi ở C2. Lần này integrity/criteria không đạt; prepared bị báo không hợp lệ. Riêng hash tiêu chí khớp lock khi chuẩn hóa CRLF thành LF, cho thấy khác kiểu xuống dòng; chưa xác minh nguyên nhân cho tất cả file khóa. Các số liệu dưới đây là bằng chứng chẩn đoán tạm thời, cần nhóm xử lý nguyên nhân hash và chạy lại trước khi chốt. Không sửa tiêu chí, lock hay bản chốt để làm khớp kết quả.
+**Bàn:** Nhom404 (L3B) · **Thẻ đã bốc:** S4
 
 Mở `incidents/Sx/card.md` của đúng số đã bốc. Các bước trên thẻ trỏ về đúng mục trong phiếu này. Mục C3 chỉ điền phần ứng với
 số thẻ của bàn; các phần khác để trống.
@@ -32,7 +30,7 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | | Sx · prepared | nhận thẻ đã bốc, chưa sửa thêm (đúng cổng vòng 1 đã chốt) | | | | | |
+| 1 | `R-S4-prepared-20261119-163455-565720` | S4 · prepared | Nhận S4 và đo trên cổng vòng 1 đã chốt (`73e0bb4b`). | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 36,59% | Đạt 205/205 lượt về kết quả ticket, nhưng còn 4 ca ùn và vượt ngân sách hoàn tự động ngày sale. |
 | 2 | | Sx · after | | | | | | |
 | 3 | | Sx · after | | | | | | |
 | 4 | | base · after | (kiểm không regression) | | | | | |
@@ -49,19 +47,20 @@ Chạy **trước khi sửa bất cứ thứ gì**:
 python3 -m lab10.grade --incident Sx
 ```
 
-- Mã lần chạy grade: `__________` · base: `__________` · prepared: `__________`
-- Cổng vòng 1 đỡ được ô / con số nào (so cột base với cột prepared): …
-- Khối kinh doanh và vận hành còn dòng nào vượt trần: …
+- **Mã lần chạy:** grade `R-S4-grade-20261119-163454-565720` · base `R-S4-before-20261119-163455-565720` · prepared `R-S4-prepared-20261119-163455-565720`. Thẻ ghi trong phiếu khớp S4, `integrity` đạt, tiêu chí và bản chốt vòng 1 còn nguyên.
+- **Cổng vòng 1 đã đỡ được gì:** Trên 205 lượt S4, `pass_rate` tăng từ **86,83% lên 100%**, `pass_k` từ **68,29% lên 100%**. Hoàn sai giảm từ **160.000đ xuống 0đ** khi cộng tất cả lượt, tương ứng **44.000đ xuống 0đ** ở ngày mô phỏng tệ nhất. Lỗi ghi oan cho hãng giảm từ **27 xuống 0**, lộ dữ liệu giữ ở **0**. Tổng hoàn tự động ngày tệ nhất giảm từ **466.000đ xuống 422.000đ**.
+- **Vượt trần còn lại:** Một người trực xử lý tối đa **6 ca/giờ**. Tỉ lệ chuyển duyệt giữ ở **36,59%**, tương đương **15 ca/ngày mô phỏng**. Chờ lâu nhất **78 phút**, vượt SLA **60 phút** và còn **4 ca ùn** so với ngưỡng đã ký là **0**. Tổng hoàn tự động **422.000đ** vượt ngân sách riêng ngày sale **300.000đ** đúng **122.000đ**. Trần cấu hình vòng 1 là **1.500.000đ/ngày**, nên không chặn được ở mức Finance áp cho ngày sale. Chi phí **4.976đ/ticket** và ROI **1,01** vẫn đạt ngưỡng đã ký.
 
 **Mở lại pre-mortem (Phiếu B mục B6), viết bằng bút khác màu.** Với thẻ S1, S3, S4, S5 đây là một phần của phần riêng theo thẻ.
 
-- Sự cố trên thẻ thuộc lăng kính nào (kỹ thuật, kinh doanh, con người và vận hành, pháp lý)? …
-- Có nằm trong các lý do bàn đã viết không? Nếu có: cổng vòng 1 đã đỡ được bao nhiêu (đọc cột prepared trong report)? Nếu không: vì sao cả bàn không nghĩ tới? …
-- Lý do còn thiếu, thêm bây giờ:
+- **Lăng kính:** chính là **Con người và vận hành** vì tải duyệt dồn vào một giờ. Có thêm **Kinh doanh** vì ngân sách ngày sale thấp hơn trần bình thường, **Kỹ thuật** vì LLM nghẽn rồi chuyển sang chế độ vẫn cho ghi, và **Pháp lý** ở hậu quả hãng bị ghi oan.
+- **Đã dự báo trong B6:** Nhóm đã nêu một người trực có thể bị quá tải và chờ quá 60 phút. Runbook vòng 1 có ngưỡng gọi người hỗ trợ, còn cấu hình đã chốt vẫn là **1 người, 6 ca/giờ**. Kết quả `prepared` vì thế giữ nguyên **78 phút** và **4 ca ùn**. B4 đã nhắc đến `fail_open`, nhưng B6 chưa nối lỗi đó với cao điểm và trần Finance riêng của ngày sale.
+- **🟦 Bổ sung sau khi nhận S4:**
 
 | Lý do thất bại (viết ở thì quá khứ) | Lăng kính | Kiểm được bằng gì (trace / data / config nào) |
 |---|---|---|
-| | | |
+| Trần hoàn tiền tự động bình thường đã được giữ nguyên vào ngày sale, nên tổng hoàn đúng vẫn vượt ngân sách Finance trong ngày. | Kinh doanh | `incidents/S4/world_patch.json` → `ops_limits.daily_auto_refund_budget_vnd`; report `prepared` → `ops.refund` (**422.000đ** so với **300.000đ**). |
+| Khi LLM nghẽn trong giờ cao điểm, nhánh dự phòng đã cho phép đề xuất ghi tiền và ghi lỗi trước khi kiểm tra đủ căn cứ. | Kỹ thuật và pháp lý | `world_patch.json` → `llm_faults`. Kiểm tra các sự kiện `llm_error`, `llm_fallback` và `proposal.basis` ở bước 3.1. Kết quả `base` có **160.000đ hoàn sai** và **27 lỗi oan**, cả hai về **0** ở `prepared`. |
 
 **Bổ sung câu 3.1 — phần riêng S4, sau khi nhận thẻ:**
 
