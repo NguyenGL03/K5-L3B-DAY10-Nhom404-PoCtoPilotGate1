@@ -165,15 +165,15 @@ mà cả bàn chưa nghĩ tới, không phải tả lại nhánh đã biết.
 **Câu hỏi dẫn dắt:** tool nào tạo ra hậu quả không đảo ngược? Mỗi tham số của tool đó lấy từ đâu (ticket, DB, model tự suy)?
 Với mỗi guideword: hậu quả cho ai, hiện có gì ngăn, cần thêm gate ở tầng nào (phát hiện / chặn / giới hạn thiệt hại)?
 
-Tool chọn phân tích: `________________` (gợi ý: `issue_refund`, `file_carrier_fault`, `notify_carrier`)
+Tool chọn phân tích: `file_carrier_fault` (gợi ý: `issue_refund`, `file_carrier_fault`, `notify_carrier`)
 
 | Tham số / dòng dữ liệu | Guideword | Lệch cụ thể (viết bằng dữ kiện của lab) | Hậu quả, cho ai | Hiện có gì ngăn? | Gate đề xuất + tầng |
 |---|---|---|---|---|---|
-| | WRONG | | | | |
+| `carrier_id`, `parcel_id` (agent lấy từ `parcels[0]`, không từ kiện khách hỏi) | WRONG | **Nhánh dự kiến từ code; cần Người 3 xác nhận chưa xuất hiện trong các trace nhóm đã xem.** `agent.py:195` lấy kiện đầu tiên để ghi lỗi, trong khi bước tracking ban đầu lấy số ngày trễ của kiện trễ nhất. Đơn `O-1013` có P1 (GHSH, trễ, `CARRIER`) và P2 (LGX, đúng hẹn): giả sử đảo thứ tự hai kiện thì có nguy cơ LGX bị ghi lỗi thay GHSH. Đây là giả định phân tích, chưa phải lỗi đã quan sát | Hãng / tài xế không liên quan có thể bị quy lỗi; dữ liệu GHSH cho thấy mức phạt 150.000đ/lỗi và ngưỡng đình chỉ 3 lỗi/7 ngày, minh họa tác động của việc ghi sai; kế toán NV-OANH đối soát sai | Guard của nhóm hiện cho qua mọi lệnh ghi, chưa kiểm tra đúng kiện liên quan đến yêu cầu | `write_gate` khi `tool == "file_carrier_fault"`: lấy kiện bằng `H.ticket_parcel(order, ctx.ticket, ctx.as_of)`, kiểm tra căn cứ lỗi theo tracking / chính sách rồi đối chiếu `parcel_id`, `carrier_id`, `driver_id`; đủ căn cứ thì `modify` đồng bộ về đúng kiện / hãng / tài xế, chưa đủ căn cứ thì `escalate` · tầng **chặn** |
 | | INVALID | | | | |
-| | INCOMPLETE | | | | |
-| | PERTURBED | | | | |
-| | INCAPABLE | | | | |
+| `delay_cause` của kiện (tracking) | INCOMPLETE | `agent.py:115`: khi kiện trễ nhưng tracking chưa ghi nguyên nhân (`null`), agent mặc định nguyên nhân là `CARRIER`. Ngoài ra, khi chuyển sang `REFUND-v4` có hiệu lực từ 01/12/2026, chỉ `CARRIER` còn được coi là lỗi hãng; `FORCE_MAJEURE` không còn thuộc nhóm này | Hãng có nguy cơ bị ghi lỗi và bị phạt khi thiếu căn cứ hoặc áp sai chính sách theo ngày hiệu lực | Cổng pháp lý có sẵn ở `tools.py:162` nhưng đang tắt (`legal.carrier_fault_requires_recorded_cause: false`) | Bật `legal.carrier_fault_requires_recorded_cause = true`: chỉ ghi lỗi khi `delay_cause` nằm trong `fault_causes` của chính sách hiệu lực · tầng **chặn** |
+| Bản ghi lỗi đã có cho kiện (`fault_rows(parcel_id=…)`) | PERTURBED | Khách gửi lại ticket cùng đơn trong ngày; cờ `refund_status` chỉ cập nhật theo đối soát đêm (`agent.py:107`) nên trợ lý ghi thêm một lỗi cho cùng sự việc | Hãng bị tính lỗi lặp, có thể vượt ngưỡng đình chỉ; đối soát phải sửa tay | Không có chống trùng; trần `ops_limits.max_auto_strikes_per_carrier_per_day = 2` chưa được áp | `write_gate`: nếu `ctx.tools.fault_rows(parcel_id=…)` đã có bản ghi thì `deny`; từ lỗi thứ 3 của cùng hãng trong ngày thì `escalate` · tầng **chặn trùng / giới hạn thiệt hại** |
+| LLM `policy_check` (quyết định `do_fault`) | INCAPABLE | Nếu `policy_check` gặp lỗi giới hạn lượt gọi cả lần đầu lẫn lần thử lại, `agent.py:152-155` chạy `fail_open`: đặt `do_fault = True` và số tiền bằng phí ship thay vì tính theo chính sách | Hãng có nguy cơ bị ghi lỗi oan; LogiX có nguy cơ hoàn sai tiền | Guard của nhóm hiện chưa chặn nhánh `fail_open` | `write_gate`: kiểm tra `ctx.events`; nếu có sự kiện `type="llm_fallback"`, `purpose="policy_check"`, `mode="fail_open"` thì `escalate` trước khi ghi lỗi. Tool `file_carrier_fault` không nhận tham số `basis` · tầng **chặn** |
 
 Không bắt buộc điền đủ năm dòng. Bắt buộc: **ít nhất ba dòng, trong đó một dòng là nhánh bàn chưa thấy trên trace**.
 
@@ -188,8 +188,8 @@ Không bắt buộc điền đủ năm dòng. Bắt buộc: **ít nhất ba dòn
 
 | Thành phần | Guideword | Lệch cụ thể | Hậu quả, cho ai | Cổng đề xuất: code hay con số nào trong `config/operating_gates.json` |
 |---|---|---|---|---|
-| | | | | |
-| | | | | |
+| Người duyệt | INCAPABLE | Chỉ 1 người trực (`ops_facts.default_reviewers_on_shift = 1`), duyệt 6 ca/giờ (10 phút/ca). Giả sử 14 ca đến cùng lúc và hàng chờ ban đầu trống: ca thứ 14 chờ 130 phút để bắt đầu, hoàn tất sau 140 phút, vượt SLA 60 phút (`ops_limits.review_sla_minutes`). Đây là kịch bản tính toán, chưa phải số đo report | Khách chờ lâu, người duyệt quá tải, có nguy cơ vượt SLA | Đề xuất ban đầu: `operations.reviewers_on_shift = 1`, `review_capacity_per_hour = 6`, `max_queue_wait_minutes = 60`; hàng chờ vượt 6 ca hoặc chờ quá 40 phút thì NV-TUNG gọi thêm người / thu hẹp `business.pilot_scope`. Cần thống nhất và ghi vào runbook B7.6, kiểm chứng lại bằng report |
+| Dữ liệu gửi cho hãng | PERTURBED | `agent.py:200-205`: payload `notify_carrier` chứa `customer_note` (chữ khách tự gõ, có thể có tên / SĐT người khác) và, với đơn quà `O-1024`, `O-1026`, thêm `recipient_contact` (tên + SĐT người nhận) | Người nhận quà / người bị nhắc tên mất kiểm soát dữ liệu cá nhân; LogiX chịu trách nhiệm pháp lý | `legal.pii_fields_blocked_to_third_party = ["recipient_contact", "customer_note"]`; đo bằng `pii_leaks` (`eval.py:52`), mục tiêu 0 |
 
 **Ví dụ mẫu (`issue_refund`, đừng chép):** tham số `amount_vnd` · WRONG · số tiền tính từ số ngày khách tự khai · LogiX mất
 tiền, hãng bị kéo theo một lỗi · hiện chỉ có trần "không vượt tổng tiền đơn" · cổng ghi so với quyền lợi tính từ DB (chặn).
