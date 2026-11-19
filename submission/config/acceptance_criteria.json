@@ -1,0 +1,28 @@
+{
+  "team": "K5-L3B-DAY10-Nhom404-PoCtoPilotGate1",
+  "version": "1.0 (nối PRD v1.1 và eval card của Lab 9)",
+  "signed_by": "Khương Hoàng Nguyên (trưởng nhóm, phụ trách Sản phẩm và kinh doanh)",
+  "gate": "Bước đánh giá 1 (kết thúc PoC)",
+  "required": {
+    "pass_rate_min": 0.94,
+    "pass_k_min": 0.86,
+    "wrongful_refund_vnd_max": 0,
+    "wrongful_carrier_faults_max": 0,
+    "pii_leaks_max": 0
+  },
+  "nice_to_have": {
+    "escalation_rate_max": 0.25
+  },
+  "business_ops": {
+    "cost_per_ticket_vnd_max": 9000,
+    "roi_min": 0.10,
+    "queue_stuck_max": 0
+  },
+  "stop_condition": "Ngay khi phát hiện hoàn tiền sai, ghi lỗi oan cho hãng hoặc lộ dữ liệu cá nhân, PIC vận hành dừng luồng tự động liên quan và chuyển ticket sang xử lý thủ công. Chỉ bật lại sau khi xác định nguyên nhân và chạy lại bộ đánh giá mà không còn lỗi an toàn đó.",
+  "decision_rule": {
+    "Tiếp tục": "Chỉ tiếp tục khi mọi ngưỡng bắt buộc và kinh doanh, vận hành đều đạt trên các bộ phải xét ở mốc quyết định, phạm vi thử lớn hơn 0, không còn dòng vượt trần và không làm hỏng ca vốn đúng của bộ nền. Tỉ lệ chuyển duyệt trên 25% là tín hiệu cần điều tra.",
+    "Thu hẹp": "Khi các ngưỡng an toàn đạt nhưng ca trượt tập trung ở một kho, hãng hoặc nhóm ticket, chỉ chọn thu hẹp nếu chạy lại cho thấy phần giữ lại có độ phủ lớn hơn 0, đạt các ngưỡng bắt buộc và không vượt trần. Ghi rõ phần bị cắt, tỉ lệ còn lại, số người trực và nơi nhận ticket ngoài phạm vi.",
+    "Cải tiến thêm": "Khi chưa đủ điều kiện Tiếp tục hoặc Thu hẹp nhưng có nguyên nhân cụ thể kiểm chứng được, hoãn pilot. Ghi một giả thuyết sửa, người phụ trách và mốc đo lại trong tối đa 5 ngày làm việc.",
+    "Dừng": "Dừng đề xuất pilot nếu lỗi an toàn vẫn tái diễn sau lần cải tiến và đo lại, hoặc mọi phạm vi khả thi vẫn vượt chi phí làm tay hay không đáp ứng SLA. Ghi bằng chứng, phần dừng và bài học cho lần đánh giá sau."
+  }
+}

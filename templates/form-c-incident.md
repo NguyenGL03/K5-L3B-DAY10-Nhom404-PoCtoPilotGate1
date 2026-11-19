@@ -67,7 +67,7 @@ python3 -m lab10.grade --incident Sx
 **Bổ sung câu 3.1 — phần riêng S4, sau khi nhận thẻ:**
 
 - Sự cố có cả bốn lăng kính: kỹ thuật (LLM lỗi và fail-open), kinh doanh (ngân sách sale 300.000đ), con người/vận hành (ticket dồn, chỉ 1 người duyệt 6 ca/giờ), pháp lý/trách nhiệm bên thứ ba (hãng bị ghi lỗi vì shop bàn giao muộn).
-- B6 đã dự đoán quá tải người duyệt và tác hại dữ liệu gửi bên thứ ba. Tuy nhiên, hai dòng kỹ thuật/kinh doanh ở bản hiện có còn trống; chưa ghi rõ chuỗi lỗi 429 → fail-open → ghi oan và ngân sách sale thấp hơn trần ngày thường. Không bổ sung ngược vào B6 để coi là đã dự đoán từ trước.
+- B6 đã dự đoán quá tải người duyệt và tác hại dữ liệu gửi bên thứ ba. Ở bản vòng 1, hai dòng kỹ thuật và kinh doanh còn trống. Chuỗi 429 → `fail_open` → ghi oan và chênh lệch ngân sách ngày sale được ghi riêng bằng dấu 🟦 ở B6 sau khi nhận S4.
 - Report đã qua `integrity` ở C1 (`R-S4-grade-20261119-163454-565720`) xác nhận `base` có 160.000đ hoàn sai và 27 lỗi oan, cả hai về 0 ở `prepared`. Hàng chờ vẫn có 4 ca ùn, chờ 78 phút, và hoàn tự động tối đa 422.000đ/ngày so với ngân sách 300.000đ.
 - Lý do bổ sung: nhân lực duyệt đã không theo kịp 30 ticket đến trong khung phút [240,300); ngân sách vận hành ngày sale đã giảm còn 300.000đ nhưng trần nhóm vẫn 1.500.000đ; khi LLM lỗi, hệ thống đã ưu tiên tiếp tục ghi hơn là xác minh an toàn. Bằng chứng: arrive_min trong tickets S4, ops_limits của world_patch, config hiện tại và `S4-08@11`.
 - Phương án giờ cao điểm được bổ sung riêng ở B7.6, ghi rõ sau S4; chưa thay số người hoặc phạm vi khi chưa đo lại chi phí và hàng chờ.
@@ -481,30 +481,30 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 
 | | **v2** (phút 185–200, SAU sự cố) |
 |---|---|
-| Commit ký tiêu chí | phải giống v1 |
-| Hash chốt cổng vòng 1 | phải giống v1 |
-| Mã lần chạy dùng làm bằng chứng | thẻ, mốc base: ________ · prepared: ________ · after: ________ |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | |
-| Bằng chứng 2 | |
-| Bằng chứng 3 | |
-| Khớp dòng nào trong `decision_rule` đã ký? | |
-| Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | |
-| Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | |
-| Nếu Dừng: bài học ghi lại | |
-| Ngày quyết định lại (trừ khi Dừng) | |
-| PIC ký | |
+| Commit ký tiêu chí | `a6a2150` |
+| Hash chốt cổng vòng 1 | `73e0bb4b` |
+| Mã lần chạy dùng làm bằng chứng | S4 · base `R-S4-before-20261119-175234-988b9c` · prepared `R-S4-prepared-20261119-175234-988b9c` · after `R-S4-after-20261119-175234-988b9c` |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Report `after` không còn dòng vượt trần với cấu hình hai người. Tỉ lệ chuyển duyệt **51,22%** vẫn vượt mục tiêu theo dõi **25%**, cần điều tra tải theo giờ. |
+| Kho hoặc hãng có số xấu nhất, và ảnh hưởng tới quyết định | Trên S4 `after`, **DN** có chi phí cao nhất (**7.538đ/ticket**), vẫn thấp hơn mức làm tay 10.000đ và trần đã ký 9.000đ. Các hãng đều đạt 100% và 0 lỗi oan. Chỉ xét DN vẫn chọn **Cải tiến thêm** vì điều kiện hai người trực áp dụng cho toàn ca. |
+| Quyết định (khoanh một) | **Cải tiến thêm.** Hoãn mở pilot với khách thật cho tới khi xác nhận đủ hai người có thẩm quyền vào ca sale và kiểm chứng kế hoạch tiếp nhận theo giờ. |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | S4 `R-S4-after-20261119-175234-988b9c`: đạt **205/205 lượt**, `pass_rate = 1,0`, `pass_k = 1,0`; hoàn sai, lỗi hãng oan và lộ dữ liệu đều bằng **0**. Bộ nền đạt **110/110**, không có ca mới hỏng. |
+| Bằng chứng 2 | Cùng lần chạy S4 `after`, phạm vi **100%** với **2 người/12 ca mỗi giờ** cho chờ tối đa **13 phút**, **0 ca ùn**, hoàn tự động **292.000đ/300.000đ**, **7.157đ/ticket**, ROI **0,40**. |
+| Bằng chứng 3 | `R-S4-after-20261119-165944-56b870` chỉ hạ trần và dùng **1 người**: tổng hoàn vẫn là **292.000đ**, nhưng chờ **82 phút** và có **5 ca ùn**. C11 chưa ghi tên, thẩm quyền và lịch của người trực thứ hai cho ca sale thật. |
+| Khớp dòng nào trong `decision_rule` đã ký? | **Cải tiến thêm:** còn một nguyên nhân cụ thể và kiểm chứng được ở nhánh [1]. Kết quả đạt phụ thuộc vào hai người trực, trong khi hồ sơ chưa xác nhận điều kiện đó. Hoãn pilot và hẹn kiểm tra lại trong tối đa 5 ngày làm việc. |
+| Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | Không áp dụng cho v2. Nếu không bố trí đủ người, đo lại một phạm vi có độ phủ dương và xác nhận CSKH nhận được phần chuyển ra trước khi quyết định khác. |
+| Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | **Nhánh [1]:** Hai người có thẩm quyền vào ca và xử lý được tải dồn thì có thể giữ chờ ≤ 60 phút và 0 ca ùn. Nguyễn Quang Tiệp phối hợp `NV-TUNG` xác nhận tên, thẩm quyền, lịch trực và chạy diễn tập nhận ca. Khương Hoàng Nguyên rà SLA, chi phí, ROI và ngân sách với kết quả diễn tập vào **20/11/2026**. |
+| Nếu Dừng: bài học ghi lại | Không áp dụng cho v2. |
+| Ngày quyết định lại (trừ khi Dừng) | **20/11/2026**, dựa trên xác nhận lịch trực và bằng chứng diễn tập. |
+| PIC ký | Khương Hoàng Nguyên, trưởng nhóm phụ trách Sản phẩm và kinh doanh. |
 
 **Chỉ ở v2**
-- Quyết định đổi hay giữ so với v1? Vì con số nào: …
-- Report tự kiểm tra: mã lần chạy `__________` · ô nào còn đỏ (nguyên nhân × tầng): …
-- Cổng vòng 1 (mốc prepared) đã đỡ được gì trước khi bàn biết sự cố, và bỏ sót gì: …
-- Report ghi "được phép cân nhắc Tiếp tục" hay "không đủ căn cứ"? Quyết định của bàn có khớp không: …
-- Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: …
+- **So với v1:** Giữ **Cải tiến thêm**, với lý do còn lại ở vận hành. Chạy lại ticket hiểm B7.3 cho thấy `O-1001@11` hoàn đúng **25.000đ** do `LOGIX` chịu, bản ghi và thông báo cho hãng đều ghi đúng **4 ngày** theo tracking. `O-1002@11` không phát sinh hoàn tiền, ghi lỗi hay thông báo. Phương án hai người đạt **13 phút/0 ca ùn** trong mô phỏng, còn ca thật cần xác nhận đủ người.
+- **Report tự kiểm tra:** `R-S4-grade-20261119-175234-988b9c` báo `PASS-VISIBLE`, toàn vẹn, tiêu chí, hồi quy và monitor đều đạt. Kiểm tra ẩn do đội chấm chạy sau buổi học. Monitor còn ghi fallback **18,54%** trên S4, cần theo dõi lúc cao điểm.
+- **Cổng vòng 1:** Trên S4, `prepared` đưa hoàn sai trên toàn bộ lượt từ **160.000đ về 0đ** và lỗi oan từ **27 về 0**. Hàng chờ vẫn **78 phút/4 ca ùn** và tổng hoàn tự động **422.000đ** vượt trần ngày sale **300.000đ**.
+- **Đối chiếu dòng kết của report:** Report cho phép cân nhắc **Tiếp tục** với cấu hình đã mô phỏng. Nhóm chọn **Cải tiến thêm** để kiểm chứng điều kiện vận hành còn thiếu trước khi dùng phạm vi 100% với khách thật.
+- **Bằng chứng còn thiếu:** Khả năng điều người trực có thẩm quyền và tốc độ tiếp nhận ca khi khách gửi dồn. Thiếu công suất này thì số **13 phút/0 ca ùn** của mô phỏng không đủ làm căn cứ mở ca thật.
 
 **Ba dòng bắt buộc** (chép nguyên ba câu này sang `submission/submission.json`, mục `three_lines`)
-1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: …
-2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: …
-3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: …
+1. **Giả định môi trường:** Ca sale có đủ hai người duyệt có thẩm quyền và đạt tổng công suất 12 ca/giờ khi yêu cầu đến dồn. Nếu chỉ có một người, mô phỏng S4 sau khi hạ trần đã ghi nhận 82 phút chờ và 5 ca ùn.
+2. **Giảm hay ngăn:** Cổng ghi sổ chặn khoản hoàn tự động làm vượt 300.000đ khi tổng đã ghi đầy đủ, còn hai người trực chỉ giảm nguy cơ ùn. Cấu hình hai người đạt 13 phút chờ và 0 ca ùn trên S4 đã đo.
+3. **Đo lại trong pilot thật:** Trước Bước đánh giá 2, đo ca đến và ca được nhận theo giờ, chờ lâu nhất, số ca ùn, khoản hoàn tự động mỗi ngày, chi phí và ROI. Đối chiếu với SLA 60 phút, 0 ca ùn, trần sale 300.000đ và sàn ROI 0,10.

@@ -34,6 +34,13 @@ Mọi con số trong quyết định Gate 1 phải trỏ về một dòng ở đ
 | 3 | `R-base-after-20261119-162257-b75241` | base · after | Bật cấu hình kinh doanh, vận hành và pháp lý ở B7.4–B7.6. | 1.0 ([1.0; 1.0]) | 1.0 | 0đ · 0 · 0 | 0.2273 | Đạt các ngưỡng đã ký trên bộ nền, chi phí 4.202đ/ticket và 0 ca ùn. |
 | 4 | `R-base-prepared-20261119-163007-565720` | base · prepared | Đo lại trên bản chụp cổng vòng 1. | 1.0 ([1.0; 1.0]) | 1.0 | 0đ · 0 · 0 | 0.2273 | Kết quả khớp lần chạy thử vòng 1, không có ca mới hỏng. |
 
+**Đối chiếu nhật ký khi gom bài, 19/11/2026.** Hai lần chạy gốc ở dòng 1–2 được giữ làm mốc lịch sử. Hai lần dưới đây tái lập từ phiên bản code tương ứng, với mã lần chạy và thời điểm mới đã ghi trong `runs/journal.jsonl`.
+
+| Dòng B0 | Mã lần chạy tái lập | Bản code | Kết quả đối chiếu |
+|---|---|---|---|
+| 1 · `base` | `R-base-before-20261119-174655-bde05c` | Commit ngay trước `9bc4c89`, hash code `bde05c565d1d` | Khớp `pass_rate` 0,9909 (CI 95% [0,9727; 1,0]), `pass_k` 0,9545, hoàn sai 20.000đ và 1 lỗi hãng oan. |
+| 2 · `after` vòng 1 | `R-base-after-20261119-174656-5b7827` | Commit `9bc4c89`, hash code `5b78273cac6f` | Khớp `pass_rate` và `pass_k` 1,0, hoàn sai 0đ, 0 lỗi hãng oan, 0 lộ dữ liệu. |
+
 ---
 
 <a id="b1"></a>
@@ -252,13 +259,13 @@ Bốn lăng kính (bắt buộc đủ cả bốn; dự án AI hay chết ở ba 
 
 | Lý do thất bại (viết ở thì quá khứ) | Lăng kính | Kiểm được hôm nay? (trace / data / config nào) | Thành cổng phòng ngừa nào (code hay config) / hay vào risk register |
 |---|---|---|---|
-| | Kỹ thuật | | |
-| | Kinh doanh | | |
+| **🟦 Bổ sung sau S4:** Khi LLM bị giới hạn lượt gọi cả hai lần, nhánh `fail_open` đã cho phép đề xuất hoàn phí hoặc ghi lỗi hãng khi thiếu căn cứ. | Kỹ thuật | `S4-05@11` ở `base` hoàn sai 18.000đ dù tracking chỉ trễ 1 ngày. `S4-08@11` ở `base` ghi lỗi VNX dù nguyên nhân là `MERCHANT_HANDOVER`. Đối chiếu chuỗi `llm_error` → `llm_fallback` → lệnh ghi trong C2. | Kiểm quyền lợi hoàn và căn cứ ghi lỗi từ tracking và chính sách trước khi ghi. Theo dõi `llm_fallback_rate` ở C8 và giữ rủi ro lúc LLM nghẽn trong C10. |
+| **🟦 Bổ sung sau S4:** Trần hoàn tự động ngày thường đã được dùng trong ngày sale, khiến tổng hoàn vượt ngân sách Finance dù từng khoản có thể hợp lệ. | Kinh doanh | `prepared` của S4 ghi hoàn tự động tối đa 422.000đ, vượt 122.000đ so với `ops_limits.daily_auto_refund_budget_vnd = 300000` trong thẻ. Config vòng 1 vẫn là 1.500.000đ/ngày. | C7 hạ trần xuống 300.000đ, chuyển khoản vượt trần cho người duyệt, rồi đo lại tiền hoàn, tải duyệt và ROI. |
 | Giờ cao điểm, lượng ticket cần người duyệt đã vượt sức của một người trực; hàng chờ kéo dài quá 60 phút, khách không được nhận xử lý đúng SLA và nhân viên quá tải, khiến pilot phải tạm dừng. | Con người và vận hành | Căn cứ thiết kế: `data/world.json` → `ops_facts` có 1 người mặc định, 6 ca/người/giờ; `ops_limits.review_sla_minutes = 60`. Kiểm chứng tải thực bằng report hàng chờ: thời gian chờ lâu nhất và số ca ùn. B4 có kịch bản giả định 14 ca đến cùng lúc, ca cuối chờ 130 phút; đây chưa phải kết quả đo. | Đề xuất `operations.reviewers_on_shift = 1`, `review_capacity_per_hour = 6`, `max_queue_wait_minutes = 60`; trong B7.6 quy định NV-TUNG gọi hỗ trợ khi chờ quá 40 phút hoặc hàng chờ vượt 6 ca, quyết định thu hẹp phạm vi khi vượt 60 phút. Đây là cấu hình và hành động runbook, không tự dừng chỉ nhờ ghi điều kiện; cần đo lại năng lực, chi phí và thống nhất với nhóm trước khi chốt. |
 | Thông báo cho hãng đã chuyển cả lời khách tự nhập và thông tin liên hệ người nhận quà ra ngoài; người có dữ liệu bị ảnh hưởng khiếu nại, nhóm phải dừng gửi thông báo để xử lý rò rỉ. | Pháp lý | `agent.py` → payload của `notify_carrier` có `customer_note`, và có thêm `recipient_contact` với đơn quà; ví dụ `O-1024`, `O-1026` trong `data/world.json`. `tools.py` có cơ chế lọc trường cấp đầu theo `legal.pii_fields_blocked_to_third_party`. Kiểm tra payload outbound sau lọc và chỉ số `pii_leaks` trong report; chưa khẳng định sự cố đã xảy ra. | Đề xuất `legal.pii_fields_blocked_to_third_party = ["recipient_contact", "customer_note"]`; phối hợp kỹ sư kiểm thử cả nội dung tự do và thông báo sau lọc. Runbook quy định NV-TUNG tắt `notify_carrier` khi phát hiện lộ dữ liệu, chỉ bật lại sau xác minh và kiểm thử. Rủi ro dữ liệu đã gửi không thể thu hồi hoàn toàn đưa vào C10, xác định người xử lý khiếu nại ở B7.5. |
 | | | | |
 
-**Đóng góp của Nguyễn Quang Tiệp — Vận hành và pháp lý:** hai dòng trên là kịch bản pre-mortem, viết ở thì quá khứ theo đề, không phải báo cáo sự cố thực tế. Các cổng mới là đề xuất; cả nhóm cần bổ sung hai lăng kính còn lại, chọn tổng cộng 2–3 lý do ưu tiên và phân công triển khai trước khi chốt vòng 1.
+**Ghi nhận thời điểm:** Nguyễn Quang Tiệp viết hai dòng Con người và vận hành, Pháp lý ở vòng 1. Hai dòng đánh dấu 🟦 là bổ sung sau khi nhận S4 ngày 19/11/2026, đối chiếu từ Phiếu C mục C1–C2. Chúng được giữ riêng với các điểm nhóm đã dự báo trước sự cố.
 
 ---
 

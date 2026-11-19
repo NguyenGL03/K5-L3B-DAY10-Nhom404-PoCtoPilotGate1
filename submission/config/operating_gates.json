@@ -1,0 +1,31 @@
+{
+  "_huong_dan": "Cổng kinh doanh, vận hành, pháp lý mà trợ lý PHẢI tuân theo. Bàn điền ở vòng 1, chốt bằng python3 -m lab10.checkpoint, rồi được sửa tiếp ở vòng 2. null = chưa đặt cổng này. Giải thích từng dòng: docs/guide.md, mục Cổng trong config (#ban-do).",
+  "business": {
+    "daily_refund_cap_vnd": 300000,
+    "cost_budget_per_ticket_vnd": 1500,
+    "pilot_scope": {"mode": "all", "warehouses": [], "percent": 100},
+    "roi_min": 0.10
+  },
+  "operations": {
+    "pic": "NV-TUNG",
+    "approver_id": "NV-HANH",
+    "reviewers_on_shift": 2,
+    "review_capacity_per_hour": 12,
+    "max_queue_wait_minutes": 60,
+    "stop_conditions": [
+      "Nếu có hoàn sai hoặc ghi nhầm bên chịu tiền, dừng issue_refund và chuyển xử lý thủ công.",
+      "Nếu có lỗi hãng oan, dừng file_carrier_fault và notify_carrier. Nếu có lộ dữ liệu cá nhân, dừng luồng gửi liên quan.",
+      "Khi khoản hoàn mới sẽ làm tổng hoàn tự động vượt 300000 VND trong ngày sale, dừng khoản tự động đó và chuyển người duyệt.",
+      "Chỉ mở phạm vi sale 100% khi NV-TUNG xác nhận đủ hai người duyệt có thẩm quyền vào ca. Nếu thiếu người, chưa mở phạm vi này; đo lại phương án thu hẹp và xác nhận năng lực CSKH.",
+      "Nếu chờ lâu nhất vượt 60 phút, có từ một ca ùn hoặc hàng chờ có từ bảy ca, thu hẹp pilot và chuyển phần ngoài phạm vi cho CSKH.",
+      "Nếu không khoanh được luồng lỗi an toàn, lỗi tái diễn sau khi đã dừng luồng liên quan hoặc không còn ca trực có thể nhận hồ sơ, dừng toàn bộ trợ lý."
+    ],
+    "alert_channel": "#logix-ops-alerts",
+    "decision_note": false,
+    "review_sampling_pct": 0
+  },
+  "legal": {
+    "pii_fields_blocked_to_third_party": ["recipient_contact", "customer_note"],
+    "carrier_fault_requires_recorded_cause": true
+  }
+}

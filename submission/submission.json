@@ -1,12 +1,17 @@
 {
-  "team": "",
-  "members": [],
-  "incident": "",
-  "decision_v1": "",
-  "decision_v2": "",
+  "team": "K5-L3B-DAY10-Nhom404-PoCtoPilotGate1",
+  "members": [
+    "KhuongHoangNguyen-2A202603987",
+    "VuDinhHuy-2A202603985",
+    "CaoThanhTung-2A202603982",
+    "NguyenQuangTiep-2A202603946"
+  ],
+  "incident": "S4",
+  "decision_v1": "Cải tiến thêm",
+  "decision_v2": "Cải tiến thêm",
   "three_lines": {
-    "environment_assumption": "",
-    "reduce_or_prevent": "",
-    "measure_in_pilot": ""
+    "environment_assumption": "Ca sale có đủ hai người duyệt có thẩm quyền và đạt tổng công suất 12 ca/giờ khi yêu cầu đến dồn. Nếu chỉ có một người, mô phỏng S4 sau khi hạ trần đã ghi nhận 82 phút chờ và 5 ca ùn.",
+    "reduce_or_prevent": "Cổng ghi sổ chặn khoản hoàn tự động làm vượt 300.000đ khi tổng đã ghi đầy đủ, còn hai người trực chỉ giảm nguy cơ ùn. Cấu hình hai người đạt 13 phút chờ và 0 ca ùn trên S4 đã đo.",
+    "measure_in_pilot": "Trước Bước đánh giá 2, đo ca đến và ca được nhận theo giờ, chờ lâu nhất, số ca ùn, khoản hoàn tự động mỗi ngày, chi phí và ROI. Đối chiếu với SLA 60 phút, 0 ca ùn, trần sale 300.000đ và sàn ROI 0,10."
   }
 }

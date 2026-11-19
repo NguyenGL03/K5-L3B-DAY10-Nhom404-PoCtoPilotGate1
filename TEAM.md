@@ -2,10 +2,10 @@
 
 ## Thông tin nhóm
 
-- Tên nhóm (`TenNhom`, không dấu, không khoảng trắng):
-- Lớp: `L3A` / `L3B`
-- Repo của bàn: `K5-<L3A|L3B>-DAY10-<TenNhom>-PoCtoPilotGate1`
-- Thẻ sự cố đã bốc (S1–S8):
+- Tên nhóm (`TenNhom`, không dấu, không khoảng trắng): `Nhom404`
+- Lớp: `L3B`
+- Repo của bàn: `K5-L3B-DAY10-Nhom404-PoCtoPilotGate1`
+- Thẻ sự cố đã bốc (S1–S8): `S4`
 
 ## Thành viên
 
@@ -30,6 +30,29 @@ Nguồn chung là [bản Day 09 tại commit `a00a47e`](https://github.com/Nguye
 ## Cá nhân
 
 Mỗi thành viên tự viết một mục bên dưới (chép mẫu, đổi tiêu đề thành họ tên không dấu và MSSV, ví dụ `## NguyenVanAn-20241234`).
+
+## KhuongHoangNguyen-2A202603987
+
+### Phần việc phụ trách
+
+Trưởng nhóm, vai Sản phẩm và kinh doanh. Phụ trách Phiếu A và bản tiêu chí đã ký, câu 2.3 về dữ liệu, phần kinh doanh ở 2.9 và 3.5, specification ở 3.2 và quyết định Gate 1 ở B8/C12.
+
+### Đóng góp cụ thể
+
+- Lập bảng phân công, chọn bộ tài liệu Lab 9 dùng chung, chốt và ký tiêu chí trước lần đánh giá đầu tiên.
+- Viết bản đồ dữ liệu và ví dụ thay đổi phiên bản chính sách ở B3. Chốt v1 ở B8 dựa trên report `prepared` và hai ticket hiểm.
+- Sau S4, kiểm tra tác động của trần 300.000đ và phương án hai người duyệt. Ghi quyết định v2 **Cải tiến thêm** vì cần xác nhận ca trực thật trước khi mở toàn bộ phạm vi.
+- Dùng AI để đọc đề, soạn và soát phiếu, đề xuất ngưỡng và phương án S4, tái lập hai lần chạy B0. Nhóm rà và chốt các ngưỡng, cấu hình và quyết định dựa trên report.
+
+### Bằng chứng
+
+- `a6a2150` ký tiêu chí, `d1714f0` hoàn thành Phiếu A, `54abd2f` cập nhật câu 2.3 và `330f323` chốt cổng vòng 1 cùng v1.
+- `68b424b` cập nhật trần hoàn và năng lực duyệt cho S4. Phiếu C mục C12 dẫn report `R-S4-grade-20261119-175234-988b9c` và bảng đo ở C0.
+
+### Exit ticket
+
+- Điều học được: hạ trần ngân sách có thể chuyển thêm ca sang người duyệt. Trong S4, hạ trần giúp giảm hoàn tự động còn 292.000đ nhưng với một người trực vẫn có 5 ca ùn.
+- Điều còn chưa chắc: hai người trực thật có giữ được SLA 60 phút khi lượng ticket dồn vào giờ sale hay không. Cần xác nhận lịch trực và đo thời gian chờ theo giờ trước khi mở phạm vi 100%.
 
 ## HoVaTen-MSSV
 
