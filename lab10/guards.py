@@ -34,9 +34,84 @@ from .tools import Verdict
 
 
 def pre_guard(ctx):
+    # Cổng 0: Ghim phiên bản chính sách có hiệu lực theo as_of (tránh drift do index_active cập nhật chậm)
+    policies = ctx.tools.lookup_policies()
+    policy = H.effective_policy(policies, ctx.as_of)
+    if policy:
+        return Verdict.allow(policy_id=policy["policy_id"])
     return Verdict.allow()
 
 
 def write_gate(ctx, action):
-    # action = {"tool": "issue_refund", "ticket_id":..., "order_id":..., "amount_vnd":..., "payer":..., ...}
+    tool = action.get("tool")
+
+    # Cổng 1: Chống tin lời khách đè database khi hoàn tiền (Fix T-002@55) & Giới hạn thiệt hại
+    if tool == "issue_refund":
+        order = ctx.tools.lookup_order(action.get("order_id"))
+        if not order:
+            return Verdict.escalate("Không tìm thấy đơn hàng trong hệ thống")
+
+        parcel = H.ticket_parcel(order, ctx.ticket, ctx.as_of)
+        delay_days = H.db_delay_days(parcel, ctx.as_of)
+        policy = H.effective_policy(ctx.tools.lookup_policies(), ctx.as_of)
+        cause = parcel.get("delay_cause")
+        entitled_vnd = H.entitlement_vnd(policy, order, delay_days, cause)
+
+        # Nếu thực tế DB không đủ điều kiện hoàn mà agent đòi hoàn -> Từ chối lệnh hoàn
+        if entitled_vnd == 0 and action.get("amount_vnd", 0) > 0:
+            return Verdict.deny("Đơn hàng không đủ điều kiện hoàn tiền theo dữ liệu giao hàng thực tế")
+
+        # Nếu agent hoàn vượt mức quyền lợi được hưởng theo DB -> Điều chỉnh lại số tiền đúng
+        if action.get("amount_vnd", 0) > entitled_vnd > 0:
+            return Verdict.modify(
+                "Điều chỉnh số tiền hoàn về đúng mức quyền lợi theo độ trễ DB",
+                amount_vnd=entitled_vnd,
+            )
+
+        # Kiểm tra trần ngân sách hoàn tự động trong ngày
+        cap = (ctx.gates or {}).get("business", {}).get("daily_refund_cap_vnd")
+        if cap is not None and not action.get("approval_id"):
+            spent = ctx.tools.auto_refund_today_vnd()
+            if spent + action.get("amount_vnd", 0) > cap:
+                return Verdict.escalate("Vượt trần ngân sách hoàn tự động trong ngày, chờ người duyệt")
+
+    # Cổng 2: Chống quy lỗi oan cho hãng vận chuyển (Fix T-002@55 & HAZOP B4)
+    elif tool == "file_carrier_fault":
+        order = ctx.tools.lookup_order(action.get("order_id"))
+        if not order:
+            return Verdict.escalate("Không tìm thấy đơn hàng khi ghi lỗi hãng")
+
+        parcel = H.ticket_parcel(order, ctx.ticket, ctx.as_of)
+        delay_days = H.db_delay_days(parcel, ctx.as_of)
+        policy = H.effective_policy(ctx.tools.lookup_policies(), ctx.as_of)
+
+        # Kiểm tra căn cứ lỗi theo tracking DB
+        if not H.carrier_at_fault(policy, parcel, delay_days):
+            return Verdict.deny("Không đủ căn cứ quy lỗi cho hãng vận chuyển theo tracking database")
+
+        # Đồng bộ đúng kiện hàng và hãng chịu trách nhiệm thực tế
+        if (
+            action.get("parcel_id") != parcel.get("parcel_id")
+            or action.get("carrier_id") != parcel.get("carrier_id")
+        ):
+            return Verdict.modify(
+                "Đồng bộ đúng kiện và hãng chịu trách nhiệm thực tế",
+                parcel_id=parcel.get("parcel_id"),
+                carrier_id=parcel.get("carrier_id"),
+                driver_id=parcel.get("driver_id"),
+                delay_days=delay_days,
+            )
+
+        # Chống ghi lỗi trùng cho cùng một kiện hàng
+        if parcel.get("parcel_id") and ctx.tools.fault_rows(parcel_id=parcel["parcel_id"]):
+            return Verdict.deny("Kiện hàng này đã được ghi lỗi hãng trước đó")
+
+    # Cổng 3: Bảo vệ dữ liệu cá nhân (PII) khi gửi thông báo cho bên thứ ba (hãng)
+    elif tool == "notify_carrier":
+        payload = action.get("payload") or {}
+        # Loại bỏ thông tin liên hệ người nhận nếu có trong payload gửi sang hãng
+        if "recipient_contact" in payload:
+            clean_payload = {k: v for k, v in payload.items() if k != "recipient_contact"}
+            return Verdict.modify("Loại bỏ thông tin liên hệ người nhận khỏi thông báo gửi hãng", payload=clean_payload)
+
     return Verdict.allow()
