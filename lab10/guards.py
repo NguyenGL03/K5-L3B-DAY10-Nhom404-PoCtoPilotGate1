@@ -61,11 +61,16 @@ def write_gate(ctx, action):
         if entitled_vnd == 0 and action.get("amount_vnd", 0) > 0:
             return Verdict.deny("Đơn hàng không đủ điều kiện hoàn tiền theo dữ liệu giao hàng thực tế")
 
-        # Nếu agent hoàn vượt mức quyền lợi được hưởng theo DB -> Điều chỉnh lại số tiền đúng
+        # Nếu agent hoàn vượt mức quyền lợi được hưởng theo DB hoặc sai bên chịu chi phí -> Điều chỉnh lại đúng
+        changes = {}
         if action.get("amount_vnd", 0) > entitled_vnd > 0:
+            changes["amount_vnd"] = entitled_vnd
+        if action.get("payer") and action.get("payer") != "LOGIX":
+            changes["payer"] = "LOGIX"
+        if changes:
             return Verdict.modify(
-                "Điều chỉnh số tiền hoàn về đúng mức quyền lợi theo độ trễ DB",
-                amount_vnd=entitled_vnd,
+                "Điều chỉnh số tiền và bên chịu hoàn về đúng chính sách theo DB",
+                **changes,
             )
 
         # Kiểm tra trần ngân sách hoàn tự động trong ngày
@@ -89,13 +94,14 @@ def write_gate(ctx, action):
         if not H.carrier_at_fault(policy, parcel, delay_days):
             return Verdict.deny("Không đủ căn cứ quy lỗi cho hãng vận chuyển theo tracking database")
 
-        # Đồng bộ đúng kiện hàng và hãng chịu trách nhiệm thực tế
+        # Đồng bộ đúng kiện hàng, hãng và độ trễ thực tế
         if (
             action.get("parcel_id") != parcel.get("parcel_id")
             or action.get("carrier_id") != parcel.get("carrier_id")
+            or action.get("delay_days") != delay_days
         ):
             return Verdict.modify(
-                "Đồng bộ đúng kiện và hãng chịu trách nhiệm thực tế",
+                "Đồng bộ đúng kiện, hãng và độ trễ thực tế",
                 parcel_id=parcel.get("parcel_id"),
                 carrier_id=parcel.get("carrier_id"),
                 driver_id=parcel.get("driver_id"),
