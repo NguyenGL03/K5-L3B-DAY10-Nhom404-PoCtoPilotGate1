@@ -15,7 +15,7 @@ Họ tên đầy đủ và MSSV của **mọi** thành viên; bàn 3 người th
 | --: | --------- | ---- | --- | :---------: |
 |   1 | Khương Hoàng Nguyên   | 2A202603987  | Sản phẩm và kinh doanh    | x           |
 |   2 | Vũ Đình Huy          |2A202603985      |Kỹ sư cổng(code)     |             |
-|   3 |           |      |     |             |
+|   3 | Cao Thanh Tùng     | 2A202603982  | Kỹ sư cổng (test)    |             |
 |   4 | Nguyễn Quang Tiệp | 2A202603946 | Vận hành và pháp lý |             |
 
 Ghi `members` trong `submission/submission.json` theo dạng `"HoVaTen-MSSV"`, khớp bảng trên.
