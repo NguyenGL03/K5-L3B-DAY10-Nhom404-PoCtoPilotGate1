@@ -31,9 +31,9 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
 | 1 | `R-S4-prepared-20261119-163455-565720` | S4 · prepared | Nhận S4 và đo trên cổng vòng 1 đã chốt (`73e0bb4b`). | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 36,59% | Đạt 205/205 lượt về kết quả ticket, nhưng còn 4 ca ùn và vượt ngân sách hoàn tự động ngày sale. |
-| 2 | | Sx · after | | | | | | |
-| 3 | | Sx · after | | | | | | |
-| 4 | | base · after | (kiểm không regression) | | | | | |
+| 2 | `R-S4-after-20261119-165944-56b870` | S4 · after | Hạ trần hoàn tự động xuống 300.000đ, giữ 1 người trực. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 51,22% | Hoàn tự động giảm còn 292.000đ, chờ tăng lên 82 phút và còn 5 ca ùn. |
+| 3 | `R-S4-after-20261119-170040-65fa27` | S4 · after | Bố trí 2 người trực, 12 ca/giờ, giữ trần 300.000đ và độ phủ 100%. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 51,22% | Hoàn tự động 292.000đ, chờ tối đa 13 phút, 0 ca ùn, chi phí 7.157đ/ticket và ROI 0,40. |
+| 4 | `R-base-after-20261119-170041-65fa27` | base · after | Kiểm tra hồi quy với cấu hình đã chọn. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 22,73% | Đạt 110/110 lượt, 0 ca mới hỏng so với bộ nền `prepared`. |
 
 ---
 
@@ -66,7 +66,7 @@ python3 -m lab10.grade --incident Sx
 
 - Sự cố có cả bốn lăng kính: kỹ thuật (LLM lỗi và fail-open), kinh doanh (ngân sách sale 300.000đ), con người/vận hành (ticket dồn, chỉ 1 người duyệt 6 ca/giờ), pháp lý/trách nhiệm bên thứ ba (hãng bị ghi lỗi vì shop bàn giao muộn).
 - B6 đã dự đoán quá tải người duyệt và tác hại dữ liệu gửi bên thứ ba. Tuy nhiên, hai dòng kỹ thuật/kinh doanh ở bản hiện có còn trống; chưa ghi rõ chuỗi lỗi 429 → fail-open → ghi oan và ngân sách sale thấp hơn trần ngày thường. Không bổ sung ngược vào B6 để coi là đã dự đoán từ trước.
-- Report chẩn đoán base ghi hoàn sai tổng 160.000đ trên 205 lượt, 27 lỗi hãng oan; cột prepared mô phỏng ghi cả hai về 0, nhưng vẫn 4 ca ùn, chờ 78 phút và hoàn tự động tối đa 422.000đ/ngày so ngân sách 300.000đ. Vì hash prepared chưa hợp lệ, chưa dùng chênh lệch này để khẳng định thành tích cổng vòng 1.
+- Report đã qua `integrity` ở C1 (`R-S4-grade-20261119-163454-565720`) xác nhận `base` có 160.000đ hoàn sai và 27 lỗi oan, cả hai về 0 ở `prepared`. Hàng chờ vẫn có 4 ca ùn, chờ 78 phút, và hoàn tự động tối đa 422.000đ/ngày so với ngân sách 300.000đ.
 - Lý do bổ sung: nhân lực duyệt đã không theo kịp 30 ticket đến trong khung phút [240,300); ngân sách vận hành ngày sale đã giảm còn 300.000đ nhưng trần nhóm vẫn 1.500.000đ; khi LLM lỗi, hệ thống đã ưu tiên tiếp tục ghi hơn là xác minh an toàn. Bằng chứng: arrive_min trong tickets S4, ops_limits của world_patch, config hiện tại và `S4-08@11`.
 - Phương án giờ cao điểm được bổ sung riêng ở B7.6, ghi rõ sau S4; chưa thay số người hoặc phạm vi khi chưa đo lại chi phí và hàng chờ.
 
@@ -274,7 +274,7 @@ Giả định (thứ nằm NGOÀI phần mềm): **Lưu lượng và cơ cấu y
 
 Vì sao có thể sai: **Số ca trong cả ngày không phản ánh mức dồn trong một giờ, và tỷ lệ hàng vỡ/thất lạc buộc chuyển người có thể tăng cùng lúc.** S4 mô tả ticket gấp ba và dồn sau 20h; đếm `arrive_min` trong `incidents/S4/tickets.jsonl` cho thấy 30/41 ticket đến trong khung phút [240,300). Không phải cả 30 đều cần duyệt, nhưng nhãn/trace như `S4-07@11` cho thấy có nhóm DAMAGED bắt buộc chuyển người. `data/world.json` → `ops_facts.review_capacity_per_reviewer_per_hour = 6`; một người không tự có thêm công suất khi khách gửi dồn.
 
-**Bằng chứng chẩn đoán:** report base `R-S4-before-20261119-164040-b75241` ghi 15 ca/ngày vào hàng chờ, chờ lâu nhất 78 phút và 4 ca ùn. Trace đánh giá `S4-33@11` có `arrive_min=292`, `queue_wait_min=78`, `queue_stuck=true`. Việc chuyển người đúng không bảo đảm SLA đúng: nút thắt nằm ở tải và công suất con người. Các số này còn chịu giới hạn integrity đã ghi đầu phiếu, cần chạy lại sau khi xác minh hash; thẻ và thời điểm đến trong dữ liệu đã đủ chỉ ra giả định có thể sai.
+**Bằng chứng chẩn đoán:** report `prepared` đã xác minh ở C1 (`R-S4-prepared-20261119-163455-565720`) ghi 15 ca/ngày vào hàng chờ, chờ lâu nhất 78 phút và 4 ca ùn. Trace đánh giá `S4-33@11` có `arrive_min=292`, `queue_wait_min=78`, `queue_stuck=true`. Ca này được chuyển người đúng quy trình, nhưng tải dồn vượt năng lực duyệt nên SLA vẫn bị vi phạm.
 
 **Hệ quả cho thiết kế/pilot:** không dùng tải bình quân để chốt nhân sự. NV-TUNG cần theo dõi lượng ca cần duyệt theo giờ và thời gian chờ, xác nhận nhân sự hỗ trợ hoặc phối hợp thu hẹp trước khi vượt 60 phút; NV-HANH ưu tiên ca gần SLA. Đo lại chi phí/ticket, ROI và số ca ùn cho từng phương án, không mặc định thêm người là có hiệu quả kinh tế. Đây là đề xuất từ câu 3.3, chưa phải bằng chứng biện pháp đã triển khai hoặc đã đạt.
 
@@ -296,10 +296,10 @@ thường biến một nhánh HOẶC thành VÀ: tác hại chỉ còn xảy ra 
 
 Ít nhất hai nhánh ở hai tầng khác nhau (kỹ thuật, kinh doanh, con người); mỗi lá có bằng chứng (ticket@seed, trường dữ liệu, hoặc một dòng của report).
 
-**Bản nháp từ mốc `prepared`.** Cả nhóm rà lại các lá sau khi có trace của 3.1 và giả định ở 3.3.
+**Căn cứ:** Hai nhánh còn mở được đo ở `prepared`. Nhánh kỹ thuật lấy từ trace `base` ở câu 3.1 và đã được cổng vòng 1 chặn trên bộ S4.
 
 ```text
-[ĐỈNH] Vận hành ngày sale gây thiệt cho khách hoặc LogiX: chờ quá SLA hoặc hoàn tự động quá ngân sách.
+[ĐỈNH] Sự cố ngày sale gây thiệt cho khách, LogiX hoặc hãng: chờ quá SLA, vượt ngân sách, hoàn sai hoặc ghi lỗi oan.
 └─ HOẶC
    ├─ [1] Khách chờ quá SLA (vận hành): chờ lâu nhất 78 phút, 4 ca ùn ở prepared.
    │  └─ VÀ
@@ -307,12 +307,20 @@ thường biến một nhánh HOẶC thành VÀ: tác hại chỉ còn xảy ra 
    │     │       Bằng chứng: đếm arrive_min và review_kind trên các trace prepared của seed 11.
    │     └─ [1b] Chỉ 1 người trực, duyệt tối đa 6 ca/giờ.
    │             Bằng chứng: ops.queue.reviewers_on_shift và ops.queue.capacity_per_hour.
-   └─ [2] LogiX chi quá ngân sách hoàn tự động (kinh doanh): vượt 122.000đ ở prepared.
+   ├─ [2] LogiX chi quá ngân sách hoàn tự động (kinh doanh): vượt 122.000đ ở prepared.
+   │  └─ VÀ
+   │     ├─ [2a] Khoản hoàn tự động ngày tệ nhất lên tới 422.000đ, trong khi Finance chốt 300.000đ.
+   │     │       Bằng chứng: ops.refund.auto_refund_day_max_vnd và finance_daily_budget_vnd.
+   │     └─ [2b] Cổng đang dùng mức 1.500.000đ/ngày của vòng 1.
+   │             Bằng chứng: ops.refund.team_daily_cap_vnd trong report prepared.
+   └─ [3] Hoàn sai hoặc ghi lỗi oan (kỹ thuật, pháp lý): base có 160.000đ hoàn sai và 27 lỗi oan.
       └─ VÀ
-         ├─ [2a] Khoản hoàn tự động ngày tệ nhất lên tới 422.000đ, trong khi Finance chốt 300.000đ.
-         │       Bằng chứng: ops.refund.auto_refund_day_max_vnd và finance_daily_budget_vnd.
-         └─ [2b] Cổng đang dùng mức 1.500.000đ/ngày của vòng 1.
-                 Bằng chứng: ops.refund.team_daily_cap_vnd và business.daily_refund_cap_vnd trong bản chốt.
+         ├─ [3a] LLM lỗi 429 ở cả hai lần; agent đi vào fail_open.
+         │       Bằng chứng: S4-05@11 và S4-08@11 ở base (llm_error, llm_fallback).
+         └─ [3b] Quyết định thiếu căn cứ đi tới lệnh ghi ở base.
+                 Bằng chứng: S4-05@11 hoàn 18.000đ khi tracking chỉ trễ 1 ngày;
+                 S4-08@11 ghi lỗi VNX dù nguyên nhân là MERCHANT_HANDOVER.
+                 Ở prepared, cổng kiểm tracking và chính sách đưa cả hai chỉ số S4 về 0.
 ```
 
 | Lá | Specification bị vi phạm (phần mềm phải làm gì) | Giả định môi trường đã sai (thế giới ngoài phần mềm) |
@@ -321,6 +329,8 @@ thường biến một nhánh HOẶC thành VÀ: tác hại chỉ còn xảy ra 
 | [1b] | Điều phối phạm vi theo công suất duyệt thực tế và chuyển ca ngoài phạm vi sang CSKH. | Một người duyệt đủ cho cả ngày thường và giờ sale. |
 | [2a] | Đối chiếu tiền hoàn tự động đã ghi cộng khoản mới với ngân sách ngày sale trước khi ghi tiếp. | Mức hoàn trong ngày cao điểm sẽ giống ngày thường. |
 | [2b] | Áp đúng hạn mức Finance cho ngày vận hành đang xét. | Trần 1.500.000đ của vòng 1 còn phù hợp khi Finance đổi ngân sách ngày sale. |
+| [3a] | Khi LLM lỗi, chỉ ghi sau khi kiểm chứng được quyết định bằng dữ liệu nghiệp vụ. | Lần gọi lại LLM sẽ thành công ngay cả khi nhà cung cấp nghẽn trong giờ sale. |
+| [3b] | Chỉ hoàn đúng quyền lợi và chỉ ghi lỗi hãng khi tracking và chính sách hiệu lực có căn cứ. | Nhà cung cấp LLM luôn trả được kết quả đủ tin cậy trước khi thực hiện lệnh ghi. |
 
 **Ví dụ mẫu một nhánh (bộ nền, đừng chép):** đỉnh "hãng VNX nhận lỗi oan cho đơn O-1002" ← [1] agent dùng độ trễ 5 ngày ←
 model lấy số trong ticket đè lên DB (`T-002@55`). Spec bị vi phạm: độ trễ dùng để ghi lỗi phải lấy từ tracking DB. Giả định
@@ -343,11 +353,13 @@ python3 -m lab10.grade --incident Sx
 
 | Nhánh fault tree | Nguyên nhân | Chỗ sửa (hàm + nhánh trong `guards.py`, hoặc khoá trong `operating_gates.json`) | Tầng (phát hiện / chặn / giới hạn thiệt hại / vận hành) | GIẢM khả năng hay NGĂN hẳn? Vì sao | Mã lần chạy sau khi sửa |
 |---|---|---|---|---|---|
-| [1] | Tải chuyển duyệt dồn vào một giờ và vượt công suất 6 ca/giờ. Ở seed 11, kho CT có 2 trong 4 ca ùn, DN và HN mỗi kho 1 ca. | **Phương án dự phòng:** thử `business.pilot_scope` theo kho, giữ `HN`, `HCM`, `DN` (33/41 ticket trong dữ liệu S4, khoảng 80,5%). Chuyển ticket CT về CSKH sau khi xác nhận năng lực tiếp nhận. | Vận hành | **Giảm tải hàng chờ của trợ lý.** Đọc lại độ phủ, chờ tối đa, ca ùn và chi phí/ROI. Kiểm riêng tải CSKH vì chuyển ca ra ngoài pilot vẫn cần người xử lý. | Chờ nhóm chọn phương án và đo lại. |
-| [2] | Trần 1.500.000đ của vòng 1 cao hơn ngân sách 300.000đ của ngày sale. | **Phương án thử đầu tiên:** đặt `business.daily_refund_cap_vnd = 300000` cho lần mô phỏng S4. Khi áp dụng, đồng bộ dòng trần ngày trong `operations.stop_conditions`. | Chặn và giới hạn thiệt hại | **Ngăn khoản hoàn tự động vượt trần** nếu mọi lệnh đi qua cổng và số tổng trong ngày là đầy đủ. Khoản chạm giới hạn có thể làm tăng chuyển duyệt, nên đo lại cả ngân sách, chờ tối đa ≤ 60 phút, 0 ca ùn, ROI ≥ 0,10 và độ phủ. | Chờ nhóm chốt cây nguyên nhân và chạy `after`. |
-| [3] | | | | | |
+| [1] | Tải chuyển duyệt dồn vào một giờ và vượt công suất 6 ca/giờ. Hạ trần làm số ca chuyển duyệt tăng từ 15 lên 21 ca/ngày mô phỏng. | Đặt `operations.reviewers_on_shift = 2`, `operations.review_capacity_per_hour = 12`. `NV-TUNG` xác nhận `NV-HANH` và một người dự phòng có thẩm quyền vào ca trước khi mở đủ phạm vi. | Vận hành | **Giảm rủi ro quá SLA** khi đủ hai người. Trên S4, chờ lâu nhất giảm từ 82 xuống 13 phút, ca ùn từ 5 xuống 0, độ phủ giữ 100%. | `R-S4-after-20261119-170040-65fa27` |
+| [2] | Trần 1.500.000đ của vòng 1 cao hơn ngân sách 300.000đ của ngày sale. | Đặt `business.daily_refund_cap_vnd = 300000` và cập nhật quy trình chuyển duyệt trong `operations.stop_conditions`. | Chặn và giới hạn thiệt hại | **Chặn khoản hoàn tự động vượt trần** ở đường ghi sổ hiện có. S4 ghi tối đa 292.000đ/ngày. Mức bảo vệ dựa vào tổng sổ cái đầy đủ và phân biệt đúng khoản tự động với khoản có phê duyệt. | `R-S4-after-20261119-165944-56b870` |
+| [3] | Khi LLM lỗi hai lần, `fail_open` có thể đề xuất ghi thiếu căn cứ. Cổng vòng 1 đã chặn hậu quả này trên bộ S4 đã đo. | **Bàn giao kỹ sư cổng:** thử nhánh sát trần khi guard điều chỉnh số tiền. Kiểm tra bên chịu tiền `payer` và `delay_days` theo tracking trên hai ticket hiểm B7.3, rồi đo lại S4 và bộ nền. | Chặn | Xác nhận lệnh vượt trần được chuyển duyệt trước khi ghi, và lệnh hợp lệ giữ đúng số tiền, bên chịu tiền, kiện, hãng và độ trễ. | Chờ bản code của kỹ sư cổng. |
 
-**Thứ tự đề xuất để thử sau khi chốt C6:** đo tác động của việc hạ trần trước. Nếu hàng chờ vẫn vượt SLA, đối chiếu với phương án bổ sung người trực theo B7.6, rồi cân nhắc thu hẹp phạm vi nếu năng lực CSKH cho phép. Ghi một thay đổi mỗi lần đo để phân biệt tác động lên ngân sách và hàng chờ.
+**Quyết định thử nghiệm của nhóm:** Hạ trần hoàn tự động xuống **300.000đ/ngày sale** và giữ độ phủ **100%** khi ca sale có đủ **2 người duyệt**. Nếu thiếu người, giữ trần 300.000đ và đo lại phương án thu hẹp trước khi mở pilot, sau khi xác nhận CSKH đủ sức tiếp nhận phần chuyển ra. Một phương án cần đo lại là chuyển kho CT về CSKH và giữ `HN`, `HCM`, `DN`.
+
+**Đánh giá cấu hình đã chọn:** S4 đạt 205/205 lượt, chi phí 7.157đ/ticket, ROI 0,40 và 0 ca ùn. Tỉ lệ chuyển duyệt 51,22% vượt mục tiêu theo dõi 25% trong tiêu chí đã ký. Cần xác nhận người trực thật và theo dõi tải theo giờ. Bộ nền đạt 110/110 lượt ở lần kiểm tra hồi quy trong C0. Quyết định Gate 1 v2 ở C12 dựa trên report sau khi hoàn tất code và monitor.
 
 ---
 
