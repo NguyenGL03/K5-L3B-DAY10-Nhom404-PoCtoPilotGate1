@@ -1,24 +1,30 @@
 {
   "_huong_dan": "Cổng kinh doanh, vận hành, pháp lý mà trợ lý PHẢI tuân theo. Bàn điền ở vòng 1, chốt bằng python3 -m lab10.checkpoint, rồi được sửa tiếp ở vòng 2. null = chưa đặt cổng này. Giải thích từng dòng: docs/guide.md, mục Cổng trong config (#ban-do).",
   "business": {
-    "daily_refund_cap_vnd": null,
-    "cost_budget_per_ticket_vnd": null,
+    "daily_refund_cap_vnd": 1500000,
+    "cost_budget_per_ticket_vnd": 1500,
     "pilot_scope": {"mode": "all", "warehouses": [], "percent": 100},
-    "roi_min": null
+    "roi_min": 0.10
   },
   "operations": {
-    "pic": "",
-    "approver_id": "",
+    "pic": "NV-TUNG",
+    "approver_id": "NV-HANH",
     "reviewers_on_shift": 1,
-    "review_capacity_per_hour": null,
-    "max_queue_wait_minutes": null,
-    "stop_conditions": [],
-    "alert_channel": "",
+    "review_capacity_per_hour": 6,
+    "max_queue_wait_minutes": 60,
+    "stop_conditions": [
+      "Nếu có hoàn sai hoặc ghi nhầm bên chịu tiền, dừng issue_refund và chuyển xử lý thủ công.",
+      "Nếu có lỗi hãng oan, dừng file_carrier_fault và notify_carrier. Nếu có lộ dữ liệu cá nhân, dừng luồng gửi liên quan.",
+      "Khi tổng hoàn tự động chạm 1500000 VND trong ngày, ngừng nhận thêm khoản hoàn tự động và chuyển người duyệt.",
+      "Nếu chờ lâu nhất vượt 60 phút, có từ một ca ùn hoặc hàng chờ có từ bảy ca, thu hẹp pilot và chuyển phần ngoài phạm vi cho CSKH.",
+      "Nếu không khoanh được luồng lỗi an toàn, lỗi tái diễn sau khi đã dừng luồng liên quan hoặc không còn ca trực có thể nhận hồ sơ, dừng toàn bộ trợ lý."
+    ],
+    "alert_channel": "#logix-ops-alerts",
     "decision_note": false,
     "review_sampling_pct": 0
   },
   "legal": {
-    "pii_fields_blocked_to_third_party": [],
-    "carrier_fault_requires_recorded_cause": false
+    "pii_fields_blocked_to_third_party": ["recipient_contact", "customer_note"],
+    "carrier_fault_requires_recorded_cause": true
   }
 }
