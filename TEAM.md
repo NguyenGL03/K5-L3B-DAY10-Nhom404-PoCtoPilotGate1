@@ -20,6 +20,13 @@ Họ tên đầy đủ và MSSV của **mọi** thành viên; bàn 3 người th
 
 Ghi `members` trong `submission/submission.json` theo dạng `"HoVaTen-MSSV"`, khớp bảng trên.
 
+## Tài liệu tham khảo chung từ Lab 9
+
+- [Eval Card của trợ lý hoàn tiền LogiX-VN](docs/day09/eval_card.md)
+- [PRD v1.1 của trợ lý hoàn tiền LogiX-VN](docs/day09/PRD_v1.1.md)
+
+Nguồn chung là [bản Day 09 tại commit `a00a47e`](https://github.com/NguyenGL03/K5-DAY09-2A202603987-KhuongHoangNguyen-Evaluation-and-Failure-Analysis/tree/a00a47e6aee6078af573771ffcf511eabe850752/docs).
+
 ## Cá nhân
 
 Mỗi thành viên tự viết một mục bên dưới (chép mẫu, đổi tiêu đề thành họ tên không dấu và MSSV, ví dụ `## NguyenVanAn-20241234`).
