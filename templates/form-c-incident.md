@@ -250,9 +250,9 @@ Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chư
 
 ### Câu 3.2 · Một specification mà nếu bị vi phạm thì gây ra tác hại trên thẻ
 
-Kiểm được bằng code hoặc bằng một con số trong report: …
+**Specification:** Trong mỗi ngày mô phỏng của đợt sale S4, tổng tiền hoàn tự động không được vượt **300.000đ**. Khoản mới có thể đẩy tổng qua trần phải chuyển cho người có thẩm quyền duyệt trước khi ghi sổ.
 
-Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): …
+**Cách kiểm:** So `ops.refund.auto_refund_day_max_vnd` với `ops.refund.finance_daily_budget_vnd` trong report S4. Ở mốc `prepared` (`R-S4-prepared-20261119-163455-565720`), **422.000đ > 300.000đ**, vượt **122.000đ**, nên yêu cầu này chưa đạt.
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
@@ -264,7 +264,7 @@ Vì sao có thể sai: …
 
 <a id="c6"></a>
 
-## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `__________`)
+## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `R-S4-prepared-20261119-163455-565720`)
 
 **Khung tư duy.** Đi từ **tác hại** ngược về nguyên nhân, không đi từ lỗi mình tình cờ thấy. Mỗi tầng hỏi "điều gì phải xảy
 ra thì điều trên mới xảy ra", nối bằng **HOẶC** (một trong các nhánh là đủ) hoặc **VÀ** (phải đồng thời). Một biện pháp tốt
@@ -278,22 +278,31 @@ thường biến một nhánh HOẶC thành VÀ: tác hại chỉ còn xảy ra 
 
 Ít nhất hai nhánh ở hai tầng khác nhau (kỹ thuật, kinh doanh, con người); mỗi lá có bằng chứng (ticket@seed, trường dữ liệu, hoặc một dòng của report).
 
-```
-[ĐỈNH] Tác hại: ______________________________ (cho ai: __________, đo bằng: __________)
- └─ HOẶC
- ├─ [1] ______________________________ tầng: đầu vào / data / hành động / quyền hạn / vận hành / kinh doanh
- │ └─ vì: ________________________ bằng chứng: ticket ______@seed ____
- ├─ [2] ______________________________ tầng: ______
- │ └─ vì: ________________________ bằng chứng: ticket ______@seed ____
- └─ [3] ______________________________ tầng: ______
- └─ vì: ________________________ bằng chứng: ______
+**Bản nháp từ mốc `prepared`.** Cả nhóm rà lại các lá sau khi có trace của 3.1 và giả định ở 3.3.
+
+```text
+[ĐỈNH] Vận hành ngày sale gây thiệt cho khách hoặc LogiX: chờ quá SLA hoặc hoàn tự động quá ngân sách.
+└─ HOẶC
+   ├─ [1] Khách chờ quá SLA (vận hành): chờ lâu nhất 78 phút, 4 ca ùn ở prepared.
+   │  └─ VÀ
+   │     ├─ [1a] Ca cần duyệt đến dồn: 14 ca ở phút 240–299, trên 30 ticket đến trong giờ đó.
+   │     │       Bằng chứng: đếm arrive_min và review_kind trên các trace prepared của seed 11.
+   │     └─ [1b] Chỉ 1 người trực, duyệt tối đa 6 ca/giờ.
+   │             Bằng chứng: ops.queue.reviewers_on_shift và ops.queue.capacity_per_hour.
+   └─ [2] LogiX chi quá ngân sách hoàn tự động (kinh doanh): vượt 122.000đ ở prepared.
+      └─ VÀ
+         ├─ [2a] Khoản hoàn tự động ngày tệ nhất lên tới 422.000đ, trong khi Finance chốt 300.000đ.
+         │       Bằng chứng: ops.refund.auto_refund_day_max_vnd và finance_daily_budget_vnd.
+         └─ [2b] Cổng đang dùng mức 1.500.000đ/ngày của vòng 1.
+                 Bằng chứng: ops.refund.team_daily_cap_vnd và business.daily_refund_cap_vnd trong bản chốt.
 ```
 
 | Lá | Specification bị vi phạm (phần mềm phải làm gì) | Giả định môi trường đã sai (thế giới ngoài phần mềm) |
 |---|---|---|
-| [1] | | |
-| [2] | | |
-| [3] | | |
+| [1a] | Phát hiện dồn ca theo giờ và cảnh báo đủ sớm để giữ chờ tối đa 60 phút, 0 ca ùn. | Ca chuyển duyệt đến rải đều trong ca. |
+| [1b] | Điều phối phạm vi theo công suất duyệt thực tế và chuyển ca ngoài phạm vi sang CSKH. | Một người duyệt đủ cho cả ngày thường và giờ sale. |
+| [2a] | Đối chiếu tiền hoàn tự động đã ghi cộng khoản mới với ngân sách ngày sale trước khi ghi tiếp. | Mức hoàn trong ngày cao điểm sẽ giống ngày thường. |
+| [2b] | Áp đúng hạn mức Finance cho ngày vận hành đang xét. | Trần 1.500.000đ của vòng 1 còn phù hợp khi Finance đổi ngân sách ngày sale. |
 
 **Ví dụ mẫu một nhánh (bộ nền, đừng chép):** đỉnh "hãng VNX nhận lỗi oan cho đơn O-1002" ← [1] agent dùng độ trễ 5 ngày ←
 model lấy số trong ticket đè lên DB (`T-002@55`). Spec bị vi phạm: độ trễ dùng để ghi lỗi phải lấy từ tracking DB. Giả định
@@ -316,9 +325,11 @@ python3 -m lab10.grade --incident Sx
 
 | Nhánh fault tree | Nguyên nhân | Chỗ sửa (hàm + nhánh trong `guards.py`, hoặc khoá trong `operating_gates.json`) | Tầng (phát hiện / chặn / giới hạn thiệt hại / vận hành) | GIẢM khả năng hay NGĂN hẳn? Vì sao | Mã lần chạy sau khi sửa |
 |---|---|---|---|---|---|
-| [1] | | | | | |
-| [2] | | | | | |
+| [1] | Tải chuyển duyệt dồn vào một giờ và vượt công suất 6 ca/giờ. Ở seed 11, kho CT có 2 trong 4 ca ùn, DN và HN mỗi kho 1 ca. | **Phương án dự phòng:** thử `business.pilot_scope` theo kho, giữ `HN`, `HCM`, `DN` (33/41 ticket trong dữ liệu S4, khoảng 80,5%). Chuyển ticket CT về CSKH sau khi xác nhận năng lực tiếp nhận. | Vận hành | **Giảm tải hàng chờ của trợ lý.** Đọc lại độ phủ, chờ tối đa, ca ùn và chi phí/ROI. Kiểm riêng tải CSKH vì chuyển ca ra ngoài pilot vẫn cần người xử lý. | Chờ nhóm chọn phương án và đo lại. |
+| [2] | Trần 1.500.000đ của vòng 1 cao hơn ngân sách 300.000đ của ngày sale. | **Phương án thử đầu tiên:** đặt `business.daily_refund_cap_vnd = 300000` cho lần mô phỏng S4. Khi áp dụng, đồng bộ dòng trần ngày trong `operations.stop_conditions`. | Chặn và giới hạn thiệt hại | **Ngăn khoản hoàn tự động vượt trần** nếu mọi lệnh đi qua cổng và số tổng trong ngày là đầy đủ. Khoản chạm giới hạn có thể làm tăng chuyển duyệt, nên đo lại cả ngân sách, chờ tối đa ≤ 60 phút, 0 ca ùn, ROI ≥ 0,10 và độ phủ. | Chờ nhóm chốt cây nguyên nhân và chạy `after`. |
 | [3] | | | | | |
+
+**Thứ tự đề xuất để thử sau khi chốt C6:** đo tác động của việc hạ trần trước. Nếu hàng chờ vẫn vượt SLA, đối chiếu với phương án bổ sung người trực theo B7.6, rồi cân nhắc thu hẹp phạm vi nếu năng lực CSKH cho phép. Ghi một thay đổi mỗi lần đo để phân biệt tác động lên ngân sách và hàng chờ.
 
 ---
 
