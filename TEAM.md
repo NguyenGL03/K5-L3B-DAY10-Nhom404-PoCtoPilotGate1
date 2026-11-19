@@ -14,7 +14,7 @@ Họ tên đầy đủ và MSSV của **mọi** thành viên; bàn 3 người th
 | STT | Họ và tên | MSSV | Vai | Trưởng nhóm |
 | --: | --------- | ---- | --- | :---------: |
 |   1 | Khương Hoàng Nguyên   | 2A202603987  |     | x           |
-|   2 |           |      |     |             |
+|   2 | Vũ Đình Huy          |2A202603985      |Kỹ sư cổng(code)     |             |
 |   3 |           |      |     |             |
 |   4 | Nguyễn Quang Tiệp | 2A202603946 | Vận hành và pháp lý |             |
 
