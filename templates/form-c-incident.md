@@ -386,9 +386,13 @@ Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [g
 
 ## C10 · Câu 3.7 · Risk register (thêm ít nhất 1 dòng sau sự cố)
 
+**Ghi nhận sau khi nhận S4, trước khi có kết quả sửa vòng 2:** đây là các rủi ro đang tồn tại từ dữ kiện thẻ, cấu hình và phân tích C1–C4, không phải kết luận đã sửa thành công. Khả năng là đánh giá định tính trong bối cảnh sale, không phải xác suất ước lượng từ pilot thật.
+
 | Rủi ro | Khả năng | Tác động | Người phụ trách (PIC, một người) | Dấu hiệu (metric nào, ngưỡng nào) | Xử lý | Ảnh hưởng bước đánh giá | Nhóm chức năng (GOVERN / MAP / MEASURE / MANAGE) |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| Tải chuyển duyệt dồn theo giờ vượt năng lực 1 người/6 ca mỗi giờ | Cao khi sale; đã xuất hiện trong S4 | Khách chờ quá SLA 60 phút, nhân viên quá tải, không nhận xử lý đúng hạn | Nguyễn Quang Tiệp | `queue_over_sla_rate > 0` hoặc report `queue_stuck ≥ 1`, `queue_wait_max_min > 60` | NV-TUNG gọi hỗ trợ theo runbook và phối hợp chọn phạm vi đủ năng lực; chỉ tăng người sau xác nhận lịch trực, đo lại công suất/chi phí/ROI | Chưa đủ căn cứ Tiếp tục khi còn ùn; cần phương án đo lại trước khi mở pilot | MANAGE |
+| Trần nhóm 1.500.000đ không phản ánh ngân sách riêng S4 300.000đ/ngày | Cao nếu giữ nguyên cấu hình; chênh lệch tồn tại trong config/patch | Hoàn tự động vượt ngân sách Finance dù từng khoản hợp lệ | Khương Hoàng Nguyên | Report `auto_refund_day_max_vnd > ops.refund.finance_daily_budget_vnd`; S4 giới hạn 300.000đ | Đồng bộ trần với Finance; Người 2 kiểm tổng trên số tiền cuối cùng trước mọi nhánh ghi; NV-OANH đối soát, phần vượt chuyển NV-HANH duyệt trong thẩm quyền | Chưa đủ căn cứ Tiếp tục khi còn vượt ngân sách; không lấy ROI tốt để bù vi phạm trần | MANAGE |
+| LLM lỗi liên tiếp dẫn tới fail-open; cảnh báo đơn thuần không bảo đảm ngăn ghi sai | Có thể tái diễn khi nhà cung cấp nghẽn; S4-08@11 đã tái hiện ở base | Hãng/tài xế bị quy lỗi oan, LogiX có thể hoàn sai, phát sinh đối soát/khiếu nại | Vũ Đình Huy | `llm_fallback_rate > 0,05` theo C8; bất kỳ `wrongful_refund_vnd > 0` hoặc `wrongful_carrier_faults > 0` là tín hiệu dừng an toàn | Guard xác minh độc lập tracking/chính sách trước ghi; ca chưa đủ căn cứ chuyển người; NV-TUNG dừng luồng liên quan khi phát hiện lỗi. Monitor chỉ phát hiện, không tự tắt | Cần kiểm chứng guard và regression; không coi có monitor là đã ngăn được tác hại | MEASURE |
 
 Quy tắc: **mỗi dòng phải đổi được một quyết định.** Cột "Dấu hiệu" phải là một metric có trong `monitors.py` hoặc trong report.
 
@@ -404,26 +408,29 @@ Ghi các dòng đổi sau sự cố. Mỗi dòng vẫn phải có một PIC có 
 
 | # nhóm | Trạng thái mới (Xong / Chưa / Không áp dụng) | Bằng chứng mới (mã lần chạy, mục phiếu, số trong report) | PIC |
 |---|---|---|---|
-| | | | |
-| | | | |
+| 5 — Hiệu năng/hạ tầng | Chưa | S4 có 30 ticket trong khung [240,300), công suất cấu hình vẫn 1 người/6 ca mỗi giờ. `queue_over_sla_rate` đã có trong MONITORS, nhưng chưa có kết quả phương án sau sửa chứng minh hết ùn | Nguyễn Quang Tiệp |
+| 6 — Chi phí/ngân sách | Chưa | `config/operating_gates.json` vẫn đặt trần 1.500.000đ, trong khi `incidents/S4/world_patch.json` quy định 300.000đ. Chưa có bằng chứng đồng bộ và đo lại trần vòng 2 | Khương Hoàng Nguyên |
+| 7 — Vận hành | Chưa | Đã có runbook B7.5–B7.6, C10 và quy trình ở C11; `llm_fallback_rate`, `queue_over_sla_rate` đã đăng ký. C8 đang ghi kênh khác `operations.alert_channel`; cần thống nhất kênh và kiểm chứng đáp ứng cảnh báo, tải người duyệt. Không đánh dấu Xong chỉ vì đã viết quy trình | Nguyễn Quang Tiệp |
+
+Chỉ cập nhật các nhóm có bằng chứng liên quan ở trên; các nhóm khác giữ trạng thái đã ghi tại B5. Hai monitor mới là bằng chứng đã bổ sung khả năng đo, không phải bằng chứng hệ thống đã hết sự cố. Kênh dùng trong quy trình dưới đây theo config hiện tại: `#logix-ops-alerts`; chủ phần C8 cần đồng bộ mô tả kênh trước khi chốt.
 
 ### Runbook 4 · Sau sự cố trên thẻ (vòng 2)
 
 | Câu hỏi | Trả lời |
 |---|---|
-| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | |
-| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | |
-| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | |
-| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | |
-| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | |
-| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | |
-| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | |
+| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | Đã có ngưỡng chờ 40 phút để gọi hỗ trợ, > 60 phút hoặc có ca ùn để thu hẹp. Giám sát tổng hoàn vòng 1 dùng trần 1.500.000đ nên không báo đúng trần S4 300.000đ. Hai monitor `llm_fallback_rate` và `queue_over_sla_rate` hiện đã có code; chưa có bằng chứng cơ chế báo động tự động hoặc người đã phản ứng trong thời hạn. |
+| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | C8 bổ sung ngưỡng monitor: trước chưa có, nay cảnh báo `llm_fallback_rate > 5%` và `queue_over_sla_rate > 0%`. SLA vẫn 60 phút. Ngân sách S4 phải là 300.000đ theo Finance, nhưng config vẫn 1.500.000đ: đây là việc chưa thực hiện, không ghi là đã đổi trần thành công. |
+| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | Chưa đổi cấu hình nhân sự: NV-HANH đứng tên duyệt, 1 người/6 ca mỗi giờ, NV-TUNG điều phối. Khi đạt ngưỡng gọi hỗ trợ, NV-TUNG phải xác nhận người có thẩm quyền từ lịch trực; chưa có tên người dự phòng được xác nhận nên không khai sẵn tăng người/công suất. |
+| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | Phạm vi hiện vẫn all/100%, review_sampling_pct=0, decision_note=false; chưa thay đổi các khóa này. Đã bổ sung quy trình ứng phó tại Runbook 5 và ghi rủi ro tại C10. Chưa có kết quả sửa/đo lại để xác nhận phạm vi hoặc trần mới đủ an toàn. |
+| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | Quy trình xử lý: NV-TUNG dừng luồng lỗi và thông báo nội bộ trong tối đa 5 phút theo Runbook 3; NV-OANH xác minh bản ghi bị ảnh hưởng, liên hệ đầu mối hãng/shop trong 1 ngày làm việc kể từ xác nhận, nêu giao dịch/bản ghi cần đối soát và cách sửa, không quy lỗi trước khi xác minh. NV-HANH thông tin khách và người duyệt về ca đang chờ. Mốc 1 ngày là thời hạn quy trình do người viết đặt, chưa phải số đo hay yêu cầu pháp luật; không ghi các liên hệ này đã xảy ra. |
+| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | Chưa có bằng chứng S4 gây lộ PII; không khẳng định dữ liệu cá nhân đã bị lộ. Nếu xác minh có lộ: giữ log gốc hạn chế truy cập, không chép dữ liệu vào kênh chung; báo NV-TUNG, NV-HANH phối hợp tiếp nhận người bị ảnh hưởng. Đề nghị bên nhận hạn chế/xóa bản sao theo quy trình, không hứa thu hồi hoàn toàn dữ liệu đã gửi. |
+| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | Theo mặt trước S4, giám sát NV-TUNG báo hàng chờ và NV-OANH báo vượt ngân sách; trace S4-08@11 làm rõ chuỗi 429 → fail-open → ghi oan. Report bổ sung đo mức ảnh hưởng. Chưa có dữ liệu pilot thật về tốc độ người nhận cảnh báo, thời gian xử lý khiếu nại, độ sẵn sàng người dự phòng; cần đo trước khi khẳng định quy trình vận hành hiệu quả. |
 
 ### Runbook 5 · Ba kịch bản "nếu … thì …" cho tuần đầu chạy thử thật
 
-1. Nếu số ticket tăng gấp ___ lần trong một giờ thì: …
-2. Nếu nhà cung cấp LLM lỗi quá ___ phút thì: …
-3. Nếu người duyệt báo không tin một quyết định của trợ lý thì: …
+1. **Nếu số ticket tăng gấp 3 lần trong một giờ:** NV-TUNG đếm riêng ticket đến, ca cần duyệt và ca đang chờ; từ 4 ca chờ hoặc ca cũ nhất chờ 40 phút thì gọi hỗ trợ đã xác nhận theo B7.6. Từ 7 ca chờ, chờ > 60 phút hoặc có ≥ 1 ca ùn thì phối hợp trưởng nhóm thu hẹp/hoãn tiếp nhận, NV-HANH ưu tiên ca cũ. Chưa xác nhận được người hỗ trợ thì không tự khai tăng công suất. Đo lại hàng chờ, chi phí và ROI trước khi mở lại phần đã thu hẹp.
+2. **Nếu nhà cung cấp LLM lỗi liên tục quá 5 phút:** NV-TUNG xử lý như sự cố nhà cung cấp, giữ các ca chưa xác minh khỏi luồng ghi tự động, kiểm tra công suất trước khi giao NV-HANH. Nếu đã có ghi sai hoặc không khoanh được phạm vi tác hại thì tắt luồng liên quan/toàn bộ theo Runbook 3 ngay, không chờ hết 5 phút. Theo dõi `llm_fallback_rate > 5%` theo cửa sổ C8 để điều tra sớm; không nhầm tỷ lệ fallback với số phút lỗi liên tục. Giữ log thời gian để xác minh sự cố kéo dài, vì monitor hiện tại chưa đo độ dài đợt lỗi. Mốc 5 phút là ngưỡng quy trình, không phải tính năng tự tắt có sẵn.
+3. **Nếu người duyệt không tin một quyết định:** NV-HANH giữ ca và mọi thao tác ghi mới liên quan để đối chiếu tracking, chính sách hiệu lực, sổ cái, bản ghi lỗi và phê duyệt; NV-OANH hỗ trợ đối soát. Nếu có lỗi an toàn thì NV-TUNG tắt luồng theo Runbook 3; nếu chưa rõ thì xử lý thủ công trong thẩm quyền, kiểm tra đã hoàn chưa để tránh trùng. Người 2/3 tái hiện và đo lại trước khi bật luồng; không buộc nhân viên tin AI hoặc tự bật decision_note/kiểm mẫu khi chưa đánh giá tải và chi phí.
 
 ---
 
