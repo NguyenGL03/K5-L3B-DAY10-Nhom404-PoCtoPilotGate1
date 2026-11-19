@@ -34,6 +34,7 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 | 2 | `R-S4-after-20261119-165944-56b870` | S4 · after | Hạ trần hoàn tự động xuống 300.000đ, giữ 1 người trực. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 51,22% | Hoàn tự động giảm còn 292.000đ, chờ tăng lên 82 phút và còn 5 ca ùn. |
 | 3 | `R-S4-after-20261119-170040-65fa27` | S4 · after | Bố trí 2 người trực, 12 ca/giờ, giữ trần 300.000đ và độ phủ 100%. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 51,22% | Hoàn tự động 292.000đ, chờ tối đa 13 phút, 0 ca ùn, chi phí 7.157đ/ticket và ROI 0,40. |
 | 4 | `R-base-after-20261119-170041-65fa27` | base · after | Kiểm tra hồi quy với cấu hình đã chọn. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 22,73% | Đạt 110/110 lượt, 0 ca mới hỏng so với bộ nền `prepared`. |
+| 5 | `R-S4-after-20261119-170430-19ec3e` | S4 · after | Tích hợp hai chỉ số theo dõi C8 vào cấu hình đã chọn. | 1,0000 ([1,0000; 1,0000]) | 1,0000 | 0đ · 0 · 0 | 51,22% | `grade` `R-S4-grade-20261119-170430-19ec3e` báo `PASS-VISIBLE`, đạt kiểm tra toàn vẹn, hồi quy và monitor. |
 
 ---
 
@@ -379,7 +380,7 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 | **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | `llm_fallback_rate = số trial có event "llm_fallback" / max(1, len(trials))`. `queue_over_sla_rate = số trial có (queue_stuck == True hoặc queue_wait_min > 60) / max(1, len(trials))`. Ca `queue_wait_min` là `None` được quy về `0` nên vẫn giữ trong mẫu số. |
 | **Khung thời gian / ngưỡng báo động** | Theo cửa sổ 15 phút trong giờ cao điểm (hoặc theo ngày vận hành): báo động trên `#van-hanh-tro-ly` khi `llm_fallback_rate > 5%` hoặc `queue_over_sla_rate > 0%`. |
 | **Điểm mù** (chỉ số này KHÔNG thấy gì) | `llm_fallback_rate` không thấy trường hợp LLM trả về bình thường (không 429) nhưng suy luận sai hoặc nghe theo chỉ thị giả; `queue_over_sla_rate` không thấy chất lượng quyết định của các ca xử lý tự động không qua hàng chờ. |
-| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | `llm_fallback_rate`: bộ nền `0.0` · trên S4 `0.185366` (`18,54%`). `queue_over_sla_rate`: bộ nền `0.0` · trên S4 `0.097561` (`9,76%`). |
+| Giá trị trên bộ nền · trên thẻ (đọc mục `monitor` của report) | Report `R-S4-grade-20261119-170430-19ec3e`: `llm_fallback_rate` là `0.0` ở bộ nền và `0.185366` (18,54%) trên S4 ở cả `base` và `after`. `queue_over_sla_rate` là `0.0` ở bộ nền, `0.097561` (9,76%) ở S4 `base`, và về `0.0` ở S4 `after` với cấu hình hai người. |
 
 ---
 
