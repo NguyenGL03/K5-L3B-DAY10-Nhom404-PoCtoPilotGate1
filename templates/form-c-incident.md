@@ -387,7 +387,7 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 <a id="c9"></a>
 
-## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `R-S4-after-20261119-170430-19ec3e`)
+## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `R-S4-after-20261119-172743-b30e0f`)
 
 Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [gate … hỏng]` và ghi:
 
@@ -404,7 +404,7 @@ Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [g
    │  └─ Còn hở: return modify có thể đi trước kiểm trần; C7 còn chờ kiểm thử sát trần.
    └─ [3] LLM lỗi/fail_open VÀ [kiểm quyền lợi/căn cứ tracking trước ghi không bảo vệ đúng]
       ├─ C0/C8 ghi hoàn sai, hãng oan, PII đều 0 trên S4; fallback vẫn còn 18,54%.
-      └─ Còn hở: DB sai, trường payer/delay_days và các nhánh return chưa kiểm đủ.
+      └─ Còn hở: DB sai; `write_gate` đã bổ sung sửa `payer="LOGIX"` và `delay_days` theo DB (`a7c4253`), nhưng nhánh `return modify` vẫn đi trước kiểm trần ngày và kiểm trùng kiện hàng.
 ```
 
 | Nhánh | Gate (hàm trong `guards.py` / khoá config / metric trong `monitors.py`) | Tầng gate (phát hiện / chặn / giới hạn thiệt hại / vận hành) | Giảm hay ngăn? Vì sao | Nhánh còn hở |
@@ -447,7 +447,7 @@ Ghi các dòng đổi sau sự cố. Mỗi dòng vẫn phải có một PIC có 
 | 5 — Hiệu năng/hạ tầng | Chưa | C0/C7 ghi phương án 2 người/12 ca mỗi giờ chờ 13 phút, 0 ùn; C8 ghi queue_over_sla_rate về 0. Đã khớp config, còn phải xác nhận người thứ hai và kèm report gốc R-S4-after-20261119-170430-19ec3e trước khi chốt sẵn sàng thật | Nguyễn Quang Tiệp |
 | 6 — Chi phí/ngân sách | Chưa | Trần hiện đã là 300.000đ; C7 ghi hoàn tự động 292.000đ, chi phí 7.157đ/ticket, ROI 0,40. C7/C9 vẫn còn kiểm thử nhánh sát trần và cần report gốc để đối chiếu; chưa đánh dấu hoàn tất mọi đường ghi | Khương Hoàng Nguyên |
 | 7 — Vận hành | Chưa | Config đã có điều kiện chỉ mở sale 100% khi đủ hai người; runbook cập nhật bên dưới, hai monitor đã có. Cần xác nhận tên/lịch người thứ hai, kênh cảnh báo thống nhất với C8 và thời gian đáp ứng cảnh báo thực tế | Nguyễn Quang Tiệp |
-| 1 — Chất lượng | Chưa | C0 ghi grade R-S4-grade-20261119-170430-19ec3e PASS-VISIBLE và hồi quy 110/110 ở R-base-after-20261119-170041-65fa27; chưa có report gốc mới trên máy, C7 còn bàn giao ca hiểm nên không coi pass bộ nền là hết mọi lỗi | Vũ Đình Huy |
+| 1 — Chất lượng | Xong (trên bộ nền & S4) | Đã đối chiếu `R-S4-grade-20261119-172742-b30e0f` (`3 visible ✅`, `5 regression ✅`, `6 monitor ✅`, `base` 110/110, `S4` 205/205) sau khi `guards.py` bổ sung sửa `payer` và `delay_days`; vẫn chờ test ẩn sau buổi học | Vũ Đình Huy |
 
 Chỉ cập nhật các nhóm có bằng chứng liên quan ở trên; các nhóm khác giữ trạng thái đã ghi tại B5. Hai monitor mới là bằng chứng đã bổ sung khả năng đo, không phải bằng chứng hệ thống đã hết sự cố. Kênh dùng trong quy trình dưới đây theo config hiện tại: `#logix-ops-alerts`; chủ phần C8 cần đồng bộ mô tả kênh trước khi chốt.
 
