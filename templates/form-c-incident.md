@@ -62,6 +62,14 @@ python3 -m lab10.grade --incident Sx
 | Trần hoàn tiền tự động bình thường đã được giữ nguyên vào ngày sale, nên tổng hoàn đúng vẫn vượt ngân sách Finance trong ngày. | Kinh doanh | `incidents/S4/world_patch.json` → `ops_limits.daily_auto_refund_budget_vnd`; report `prepared` → `ops.refund` (**422.000đ** so với **300.000đ**). |
 | Khi LLM nghẽn trong giờ cao điểm, nhánh dự phòng đã cho phép đề xuất ghi tiền và ghi lỗi trước khi kiểm tra đủ căn cứ. | Kỹ thuật và pháp lý | `world_patch.json` → `llm_faults`. Kiểm tra các sự kiện `llm_error`, `llm_fallback` và `proposal.basis` ở bước 3.1. Kết quả `base` có **160.000đ hoàn sai** và **27 lỗi oan**, cả hai về **0** ở `prepared`. |
 
+**Bổ sung câu 3.1 — phần riêng S4, sau khi nhận thẻ:**
+
+- Sự cố có cả bốn lăng kính: kỹ thuật (LLM lỗi và fail-open), kinh doanh (ngân sách sale 300.000đ), con người/vận hành (ticket dồn, chỉ 1 người duyệt 6 ca/giờ), pháp lý/trách nhiệm bên thứ ba (hãng bị ghi lỗi vì shop bàn giao muộn).
+- B6 đã dự đoán quá tải người duyệt và tác hại dữ liệu gửi bên thứ ba. Tuy nhiên, hai dòng kỹ thuật/kinh doanh ở bản hiện có còn trống; chưa ghi rõ chuỗi lỗi 429 → fail-open → ghi oan và ngân sách sale thấp hơn trần ngày thường. Không bổ sung ngược vào B6 để coi là đã dự đoán từ trước.
+- Report chẩn đoán base ghi hoàn sai tổng 160.000đ trên 205 lượt, 27 lỗi hãng oan; cột prepared mô phỏng ghi cả hai về 0, nhưng vẫn 4 ca ùn, chờ 78 phút và hoàn tự động tối đa 422.000đ/ngày so ngân sách 300.000đ. Vì hash prepared chưa hợp lệ, chưa dùng chênh lệch này để khẳng định thành tích cổng vòng 1.
+- Lý do bổ sung: nhân lực duyệt đã không theo kịp 30 ticket đến trong khung phút [240,300); ngân sách vận hành ngày sale đã giảm còn 300.000đ nhưng trần nhóm vẫn 1.500.000đ; khi LLM lỗi, hệ thống đã ưu tiên tiếp tục ghi hơn là xác minh an toàn. Bằng chứng: arrive_min trong tickets S4, ops_limits của world_patch, config hiện tại và `S4-08@11`.
+- Phương án giờ cao điểm được bổ sung riêng ở B7.6, ghi rõ sau S4; chưa thay số người hoặc phạm vi khi chưa đo lại chi phí và hàng chờ.
+
 ---
 
 <a id="c2"></a>
@@ -71,39 +79,42 @@ python3 -m lab10.grade --incident Sx
 Dò ít nhất 2 ticket hỏng theo kiểu KHÁC nhau:
 
 ```bash
-python3 -m lab10.trace --suite Sx --ticket <ID> --seed 11
+python -m lab10.trace --suite S4 --stage base --ticket S4-08 --seed 11
+python -m lab10.trace --suite S4 --stage base --ticket S4-08 --seed 22
+python -m lab10.trace --suite S4 --stage base --ticket S4-05 --seed 11
+python -m lab10.trace --suite S4 --stage base --ticket S4-07 --seed 11
 ```
 
 Ba loại lỗi: **giới hạn của hệ thống** · **lỗi ngữ cảnh** · **lỗi chìm** (cả người dùng lẫn hệ thống đều không nhận ra; nguy hiểm nhất,
 người chịu hại thường là bên thứ ba). Định nghĩa đầy đủ và ví dụ: Phiếu B mục B2.
 
-**Tác hại của thẻ:** cho ai `____` · đo bằng gì `____` · bao nhiêu ở mốc base `____`
+**Tác hại của thẻ:** khách chờ quá SLA, NV-HANH quá tải, hãng/tài xế bị ghi lỗi oan, LogiX/Finance chịu hoàn sai và vượt ngân sách. Report base `R-S4-before-20261119-164040-b75241`: 205 lượt (41 ticket × 5 seed), pass_rate 0,8683; hoàn sai tổng 160.000đ và 27 lỗi hãng oan trên tất cả lượt; chờ tối đa 78 phút, tối đa 4 ca ùn/seed-ngày, hoàn tự động tối đa 466.000đ/ngày > 300.000đ. Không cộng nhầm số tiền tổng 5 seed với ngân sách một ngày. PII = 0 trong bộ S4 đã đo.
 
 ### Phần 1 · Ghi lỗi (bằng chứng là mã ticket@seed và dòng trace, không tả chung chung)
 
 | # | Lỗi: người ta thấy gì (dán dòng trace / sổ cái) | Ai gặp, ai chịu | Hệ trọng (thấp / cao) | Loại lỗi (giới hạn hệ thống / ngữ cảnh / chìm) |
 |---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| 1 | Base `S4-08@11`: tracking bước 02 ghi `cause=MERCHANT_HANDOVER`; 04–05 lỗi 429; 06 `llm_fallback mode=fail_open`; 07 `do_fault=true`; 09 ghi lỗi VNX cho O-2408-P1. Nhãn yêu cầu không ghi lỗi hãng. Cùng ticket seed 22 chỉ lỗi lần đầu, retry thành công, `do_fault=false`, ĐẠT. `S4-05@11` là ca HỎNG thứ hai: trễ 1 ngày nhưng fail-open vẫn hoàn 18.000đ và ghi lỗi MKD thay vì từ chối. | VNX/MKD và tài xế bị quy lỗi; LogiX mất tiền ở S4-05, kế toán đối soát sai | Cao | Lỗi chìm: trợ lý báo hoàn tất; khách được lợi hoặc được hoàn đúng như S4-08, không phản ánh việc hãng bị ghi oan |
+| 2 | Base `S4-33@11`, file traces/S4-33@11.json: `arrive_min=292`, `status=escalated`, `queue_wait_min=78`, `queue_stuck=true`; các ca S4-26/28/31 lần lượt chờ 62/68/72 phút. Đối chứng `S4-07@11`: trace nhận DAMAGED và chuyển người là đúng. Sai nằm ở năng lực hàng chờ, không phải mọi escalation đều là lỗi. | Khách không được nhận xử lý trong 60 phút; NV-HANH quá tải, NV-TUNG phải điều phối | Cao | Giới hạn của hệ thống: công suất người duyệt 6 ca/giờ không đáp ứng tải dồn. Nhãn từng ticket có thể ĐẠT nhưng SLA vận hành bị vi phạm |
+| 3 | Base `S4-34@11`: cộng các dòng ledger không có approval_id theo arrive_min trong các trace seed 11 được 284.000đ trước ca này; tool issue_refund ghi thêm 26.000đ, tổng thành 310.000đ > 300.000đ. Khoản riêng lẻ hợp lệ, nhưng tổng ngày vi phạm Finance; report base có ngày/seed đạt 466.000đ. | Finance/LogiX vượt ngân sách ngày sale; người duyệt mất quyền kiểm soát phần vượt trần | Cao | Lỗi chìm ở cấp ngày: từng khoản báo thành công, không có chặn tổng theo ngân sách sale; có thể chỉ lộ khi đối soát/report |
 
 ### Phần 2 · Tìm nguồn (đánh dấu câu nào đúng với từng lỗi)
 
 | Câu hỏi | Lỗi 1 | Lỗi 2 | Lỗi 3 |
 |---|---|---|---|
-| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | | | |
-| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | | | |
-| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | | | |
-| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | | | |
+| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | Không phải nguồn chính: tracking đã ghi đúng MERCHANT_HANDOVER | Không có bằng chứng diễn giải sai; chuyển DAMAGED cho người là đúng | Không phải khách khai sai; khoản riêng lẻ hợp lệ |
+| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | Không thiếu nguyên nhân; fallback bỏ qua căn cứ đã có | Có: kế hoạch 1 người không phản ánh tải dồn 30 ticket/giờ; cần phân biệt ticket đến và ca duyệt | Có: giới hạn Finance 300.000đ trong patch chưa được áp vào trần thực thi; config nhóm 1.500.000đ |
+| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | Chưa có bằng chứng hai bên cùng ghi | Chưa có bằng chứng xử lý trùng giữa người và máy | Chưa có bằng chứng ghi trùng; đây là lệch giới hạn Finance với giới hạn thực thi, không tự kết luận có hai hệ thống cùng ghi |
+| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | Có — nguồn chính: 429 cả hai lần làm fail-open, do_fault bị ép true | Có ở tầng vận hành: tải cần người vượt năng lực, không phải LLM hiểu sai S4-07 | Không cần LLM lỗi: S4-34@11 có basis=policy mà vẫn vượt tổng ngân sách |
 
 ### Phần 3 · Hướng xử lý (mỗi lỗi một ô)
 
 | | Lỗi 1 | Lỗi 2 | Lỗi 3 |
 |---|---|---|---|
-| Vì sao người gặp coi đây là lỗi | | | |
-| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | | | |
-| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | | | |
-| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | | | |
+| Vì sao người gặp coi đây là lỗi | Shop bàn giao muộn không phải lỗi hãng; S4-05 chưa đủ điều kiện hoàn. Không được biến lỗi LLM thành quyền ghi | Chuyển người đúng nhưng khách vẫn chờ 78 phút > SLA 60 phút | Khoản hoàn hợp lệ không cho phép vượt ngân sách ngày sale nếu thiếu duyệt |
+| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | Guard đối chiếu tracking/chính sách; nếu chưa xác minh được thì trả quyền cho NV-HANH, không cho fallback tự quy lỗi | Vận hành: gọi người có thẩm quyền, thu hẹp lưu lượng theo năng lực, ưu tiên ca gần SLA; đo chi phí/ROI | Guard kiểm tổng hoàn trước mỗi lần ghi theo trần nhỏ hơn giữa Finance và nhóm; phần vượt chuyển duyệt |
+| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | Hãng không bị ghi lỗi khi thiếu căn cứ; NV-HANH xác minh ca không chắc chắn, NV-OANH đối soát lỗi đã ghi; trả lời khách theo kết quả xác minh | NV-TUNG nhận cảnh báo → xác nhận hỗ trợ/phạm vi → NV-HANH xử lý ca cũ nhất; chưa đủ năng lực thì dừng nhận thêm, không đẩy vô hạn vào hàng chờ | NV-OANH báo ngân sách → guard giữ khoản vượt → NV-HANH duyệt theo thẩm quyền; đối soát trước hoàn thủ công để tránh trùng |
+| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | Đề xuất C8: fail_open_rate từ events; CHƯA có trong MONITORS, Người 3 cần triển khai và đo | Đã có report queue_wait_max_min, queue_stuck; escalation_rate có sẵn chỉ đo tỷ lệ, không thấy tải dồn; đề xuất C8 peak_review_arrivals_per_hour, chưa triển khai | Đã có report auto_refund_day_max_vnd và ops.refund.finance_daily_budget_vnd; đề xuất C8 auto_refund_budget_excess_vnd theo ngày/seed, chưa triển khai |
 
 Yêu cầu: ít nhất **hai lỗi có nguồn khác nhau** ở phần 2, và ít nhất một lỗi được xếp đúng là **lỗi chìm**.
 
@@ -123,6 +134,8 @@ Yêu cầu: ít nhất **hai lỗi có nguồn khác nhau** ở phần 2, và í
 | S6 | **C3.2** Hình dung của người và của hệ thống |
 | S7 | **C3.3** Hiệu chỉnh lòng tin (người đặt hàng, người nhận hàng) |
 | S8 | **C3.4** Hiệu chỉnh lòng tin (nhân viên duyệt, trưởng ca đứng tên) + **một dòng** "hoàn trên hạn mức" ở bảng C3.1 Bước 2 |
+
+**Đã thực hiện phần riêng S4:** xem đoạn bổ sung câu 3.1 tại C1 và cập nhật sau S4 ở B7.6. Các bảng C3.1–C3.5 bên dưới dành cho thẻ khác, không áp dụng S4.
 
 ### C3.1 · Mức kiểm soát của con người ở từng lệnh ghi (S2; S8 chỉ một dòng)
 
@@ -232,13 +245,14 @@ Mở lại Phiếu B mục B3. Ghi ở đây những dòng đổi so với vòng
 
 *Mục riêng, không ghi đè HAZOP vòng 1 ở Phiếu B mục B4. Năm guideword và nghĩa của chúng: xem Phiếu B mục B4.*
 
-Tool chọn phân tích: `________________`
+Tool chọn phân tích: `issue_refund`; mở rộng các dòng cuối sang năng lực người duyệt và ngân sách ngày sale.
 
 | Tham số / dòng dữ liệu | Guideword (WRONG / INVALID / INCOMPLETE / PERTURBED / INCAPABLE) | Lệch cụ thể (mã ticket, trường dữ liệu của thẻ) | Hậu quả, cho ai | Hiện có gì ngăn? | Gate đề xuất + tầng |
 |---|---|---|---|---|---|
-| | | | | | |
-| | | | | | |
-| | | | | | |
+| Quyết định amount_vnd/basis khi LLM không đáp ứng | INCAPABLE | Base S4-05@11: 429 cả hai lần, fallback fail_open, hoàn 18.000đ khi DB chỉ trễ 1 ngày; S4-08@11 còn ghi lỗi VNX dù cause=MERCHANT_HANDOVER | LogiX hoàn sai, hãng/tài xế bị quy lỗi | Base bỏ qua guard; code hiện tại tính lại entitlement và căn cứ hãng theo DB, nhưng chưa khẳng định hết rủi ro chỉ từ pass từng ticket | Guard độc lập model kiểm quyền lợi/căn cứ; không xác minh được thì escalate; ngăn nhánh ghi sai trong giả định DB đúng, không tự giải quyết tải người |
+| Tổng hoàn tự động/ngày và ngân sách Finance | WRONG | Base S4-34@11 đưa tổng từ 284.000đ lên 310.000đ bằng khoản 26.000đ hợp lệ. Trần nhóm hiện 1.500.000đ > giới hạn S4 300.000đ | Finance mất kiểm soát ngân sách dù từng khoản có thể đúng | Guard có kiểm trần nhóm nhưng trần không khớp Finance; report chẩn đoán after vẫn 422.000đ/ngày | Mỗi lần ghi kiểm spent + khoản cuối cùng với min(trần nhóm, ngân sách Finance hiện hành); phần vượt escalate; tầng chặn/giới hạn thiệt hại |
+| Công suất duyệt và nhịp ticket đến | INCAPABLE | 30 ticket tới trong [240,300), không phải 30 ca đều cần duyệt. 1 người 6 ca/giờ; S4-33@11 chờ 78 phút, 4 ca ùn/seed-ngày | Khách vượt SLA, nhân viên quá tải | Có report hàng chờ và runbook, nhưng một câu stop_condition không tự gọi người hay giảm tải | Cảnh báo hàng chờ và thời gian chờ; NV-TUNG xác nhận hỗ trợ/thu hẹp, NV-HANH ưu tiên ca cũ; tầng vận hành, chỉ giảm rủi ro và cần kiểm chứng ROI |
+| Ngân sách còn lại khi sửa amount_vnd | PERTURBED | Nhánh dự kiến từ code, chưa quan sát trong các trace đã kiểm ở câu 3.1: write_gate có thể return modify khi giảm tiền trước nhánh kiểm trần; khoản đã giảm vẫn có thể làm tổng ngày vượt trần | Finance vẫn vượt ngân sách dù guard sửa đúng tiền từng khoản | Cần kiểm tra thứ tự mọi nhánh return; không coi nhánh này đã xảy ra chỉ từ report vượt trần | Kiểm trần trên số tiền cuối cùng trước allow/modify; thử ca tổng sát trần và khoản bị điều chỉnh; tầng chặn. Bàn giao Người 2 kiểm chứng, không viết riêng theo ID ticket |
 
 Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chưa thấy trên trace** lúc viết.
 
@@ -256,9 +270,13 @@ Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): …
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
-Giả định (thứ nằm NGOÀI phần mềm): …
+Giả định (thứ nằm NGOÀI phần mềm): **Lưu lượng và cơ cấu yêu cầu thực tế đến đủ rải đều để một người duyệt, với năng lực 6 ca/giờ, có thể nhận xử lý các ca AI chuyển sang trong vòng 60 phút, kể cả ngày sale.** Đây là giả định về nhịp khách gửi yêu cầu và nguồn nhân lực thực tế, không phải yêu cầu chức năng của model. Nhận định này được suy ra từ kế hoạch hiện có 1 người/6 ca mỗi giờ và cách ước lượng giờ cao điểm theo bình quân ở B7.6; không khẳng định nhóm đã phát biểu nguyên văn giả định trước khi nhận thẻ.
 
-Vì sao có thể sai: …
+Vì sao có thể sai: **Số ca trong cả ngày không phản ánh mức dồn trong một giờ, và tỷ lệ hàng vỡ/thất lạc buộc chuyển người có thể tăng cùng lúc.** S4 mô tả ticket gấp ba và dồn sau 20h; đếm `arrive_min` trong `incidents/S4/tickets.jsonl` cho thấy 30/41 ticket đến trong khung phút [240,300). Không phải cả 30 đều cần duyệt, nhưng nhãn/trace như `S4-07@11` cho thấy có nhóm DAMAGED bắt buộc chuyển người. `data/world.json` → `ops_facts.review_capacity_per_reviewer_per_hour = 6`; một người không tự có thêm công suất khi khách gửi dồn.
+
+**Bằng chứng chẩn đoán:** report base `R-S4-before-20261119-164040-b75241` ghi 15 ca/ngày vào hàng chờ, chờ lâu nhất 78 phút và 4 ca ùn. Trace đánh giá `S4-33@11` có `arrive_min=292`, `queue_wait_min=78`, `queue_stuck=true`. Việc chuyển người đúng không bảo đảm SLA đúng: nút thắt nằm ở tải và công suất con người. Các số này còn chịu giới hạn integrity đã ghi đầu phiếu, cần chạy lại sau khi xác minh hash; thẻ và thời điểm đến trong dữ liệu đã đủ chỉ ra giả định có thể sai.
+
+**Hệ quả cho thiết kế/pilot:** không dùng tải bình quân để chốt nhân sự. NV-TUNG cần theo dõi lượng ca cần duyệt theo giờ và thời gian chờ, xác nhận nhân sự hỗ trợ hoặc phối hợp thu hẹp trước khi vượt 60 phút; NV-HANH ưu tiên ca gần SLA. Đo lại chi phí/ticket, ROI và số ca ùn cho từng phương án, không mặc định thêm người là có hiệu quả kinh tế. Đây là đề xuất từ câu 3.3, chưa phải bằng chứng biện pháp đã triển khai hoặc đã đạt.
 
 ---
 

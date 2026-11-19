@@ -381,6 +381,18 @@ Lần chạy trên đạt **110/110 lượt**, hoàn tự động **155.000đ/ng
 
 <a id="b8"></a>
 
+**Bổ sung B7.6 sau khi nhận S4 — câu 3.1, Nguyễn Quang Tiệp (không thay bằng chứng vòng 1):**
+
+| Nội dung cập nhật | Phương án / bằng chứng S4 |
+|---|---|
+| Tải giờ cao điểm | Đếm arrive_min của 41 ticket S4 theo các khung 60 phút: [0,60): 1; [60,120): 2; [120,180): 1; [180,240): 2; [240,300): **30**; [300,360): 0; [360,420): 3; [420,480): 2. Không dùng bình quân 9 ticket/giờ để đại diện tải dồn thực tế; số ticket đến khác số ca phải duyệt. Thẻ mô tả dồn sau 20h, dữ liệu dùng phút tương đối trong ca. |
+| Người trực và năng lực | Cấu hình hiện vẫn NV-HANH, 1 người, 6 ca/giờ; NV-TUNG điều phối. Report chẩn đoán S4 ghi 15 ca/ngày cần duyệt, chờ tối đa 78 phút và 4 ca ùn. Chưa tăng người hoặc đổi phạm vi trong câu 3.1; cần thử phương án với người có thẩm quyền thực sự sẵn sàng. |
+| Ngưỡng gọi hỗ trợ | Giữ đề xuất runbook: từ 4 ca đang chờ hoặc ca cũ nhất chờ từ 40 phút, NV-TUNG gọi hỗ trợ đã xác nhận trong lịch trực. Chỉ cập nhật thành 2 người/12 ca mỗi giờ khi đủ người vào ca. Đếm ca đang chờ bằng hàng chờ vận hành, không lấy queued_per_day làm kích thước hàng chờ tức thời. |
+| Ngưỡng thu hẹp / tắt | Từ 7 ca đang chờ, thời gian chờ > 60 phút hoặc queue_stuck ≥ 1: NV-TUNG phối hợp trưởng nhóm chọn phạm vi còn độ phủ > 0 và đủ năng lực để đo lại; NV-HANH tiếp nhận phần làm tay theo năng lực. Lỗi tiền tắt issue_refund liên quan; ghi oan tắt file_carrier_fault/notify_carrier. Riêng ngày S4, cảnh báo ngân sách từ 240.000đ và dừng hoàn tự động tại 300.000đ; mức 1.500.000đ của cấu hình vòng 1 không phù hợp S4. Điều kiện dừng cần được guard/quy trình thực thi, không chỉ ghi câu chữ. |
+| Chi phí và ROI | Report base S4: 4.980đ/ticket, ROI 0,85. Cột prepared/after chẩn đoán: 4.976đ/ticket, ROI 1,01; các cột này còn lỗi integrity, chưa dùng để chốt hiệu quả vòng 1. Thêm người tăng phí giữ chỗ 30.000đ/người/ca, công suất vật lý thêm 6 ca/giờ; chưa có report S4 với phương án 2 người nên không suy rộng số đo bộ nền sang sale. Người 3 cần đo từng phương án và Người 1 đối chiếu ngưỡng chi phí ≤ 9.000đ, ROI ≥ 0,10. |
+
+Nguồn số liệu chẩn đoán: `runs/R-S4-grade-20261119-164040-b75241.json` và report/traces cùng mã ở các mốc. Integrity/criteria đang báo lỗi; cần kiểm tra khác biệt byte/kiểu xuống dòng, giữ nguyên nội dung đã ký và bản chốt, rồi chạy lại để xác nhận. Phương án trên chưa được triển khai trong code/config bởi câu 3.1.
+
 ## B8 · Chốt cổng vòng 1 và quyết định Gate 1 · v1 (phút 105–115)
 
 Làm đúng thứ tự:
