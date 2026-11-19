@@ -207,15 +207,17 @@ Trạng thái: **Xong** (có bằng chứng) · **Chưa** · **Không áp dụng
 
 | # | Nhóm việc | Bằng chứng lấy từ đâu (đã có sẵn trong lab) | Mục cần kiểm tra | Trạng thái | Bằng chứng | PIC |
 |---|---|---|---|---|---|---|
-| 1 | Chất lượng | Report `lab10.eval` (mã lần chạy) + bảng soát lỗi (Phiếu B mục B2) | | | | |
-| 2 | Dữ liệu | Bản đồ dữ liệu (Phiếu B mục B3, câu 2.3): trường nào là nguồn sự thật, trường nào là bản sao | | | | |
-| 3 | Bảo mật | Một vòng HAZOP với guideword PERTURBED (Phiếu B mục B4): chữ nào đi vào model mà không do LogiX viết | | | | |
-| 4 | Quyền hạn | `config/switches.json` + guard trước lệnh ghi; thẻ S2, S8 có thêm mục mức kiểm soát (Phiếu C mục C3) | | | | |
-| 5 | Hiệu năng, hạ tầng | Đội tự ước tính; HAZOP guideword INCAPABLE: LLM không trả lời thì sao; số người duyệt và số ca mỗi giờ | | | | |
-| 6 | Chi phí | Khối "kinh doanh và vận hành" của report: chi phí mỗi ticket so với làm tay, ROI, tiền LLM ticket đắt nhất; `config/operating_gates.json` mục `business` | | | | |
-| 7 | Vận hành | Runbook (Phiếu B mục B7.5–B7.6) + `config/operating_gates.json` mục `operations` (PIC, người duyệt, số người trực, điều kiện dừng, kênh báo tin) + metric trong `monitors.py` | | | | |
-| 8 | Con người, pháp lý | Bên thứ ba (hãng, tài xế, shop, người nhận quà, người đứng tên duyệt); `config/operating_gates.json` mục `legal`; thẻ S6, S7, S8 có mục riêng ở Phiếu C mục C3 | | | | |
-| 9 | Quyết định | Câu tiêu chí (Phiếu A mục A4) + hash Bản tiêu chí đã ký + quyết định Gate 1 (Phiếu B mục B8, Phiếu C mục C12) | | | | |
+| 1 | Chất lượng | Report `lab10.eval` + B2 | Đạt ngưỡng chất lượng và an toàn đã ký; có report gốc và kết quả sau sửa | Chưa | B0–B2 ghi baseline `R-base-before-20261119-152334-bde05c`: hoàn sai 20.000đ, 1 lỗi hãng oan, chưa đạt ngưỡng 0. Chưa có `runs/` trên máy để đối chiếu report gốc; chưa có kết quả sau sửa | Người 3 — đo kiểm; cần bổ sung tên thật từ `TEAM.md` |
+| 2 | Dữ liệu | B3; `data/world.json` | Xác định nguồn sự thật về kiện, độ trễ, nguyên nhân, chính sách và một ví dụ drift | Chưa | B3 còn trống; B4 đã nêu rủi ro chọn kiện đầu tiên và chuyển chính sách nhưng chưa thay thế bản đồ dữ liệu | Khương Hoàng Nguyên |
+| 3 | Bảo mật | HAZOP PERTURBED ở B4; B7.2 | Không để nội dung khách điều khiển thao tác vượt quyền hoặc gây rò rỉ dữ liệu | Chưa | B4 đã phân tích dữ liệu khách trong thông báo; `guards.py` vẫn cho qua mọi thao tác, B7.2 chưa hoàn thiện và chưa có bằng chứng kiểm thử biện pháp | Vũ Đình Huy |
+| 4 | Quyền hạn | `config/switches.json`; `write_gate`; C3 theo thẻ | Kiểm soát thao tác ghi, phê duyệt và quyền tắt từng thao tác | Chưa | Có 4 công tắc đang `on`; `write_gate` hiện chỉ trả `Verdict.allow()`. Cần triển khai guard và mô tả quyền duyệt, quyền tắt trong B7.5 | Vũ Đình Huy |
+| 5 | Hiệu năng, hạ tầng | HAZOP INCAPABLE ở B4; B7.6; report hàng chờ | Có phương án LLM lỗi và giờ cao điểm phù hợp năng lực người duyệt | Chưa | B4 có kịch bản 14 ca đến đồng thời và rủi ro `fail_open`; config có 1 người, 6 ca/giờ. B7.6 còn trống, chưa kiểm chứng phương án bằng report | Nguyễn Quang Tiệp |
+| 6 | Chi phí | Report kinh doanh; B7.4; config `business` | Chi phí/ticket ≤ 9.000đ, ROI ≥ 0,10 theo tiêu chí; kiểm tra ngân sách và chi phí nhân sự | Chưa | B1 ghi baseline 4.203đ/ticket, ROI 1,34; phân khúc kho `?` tốn 10.359đ/ticket. Cần report gốc để đối chiếu; ngưỡng `business` còn `null`, B7.4 chưa hoàn thiện | Khương Hoàng Nguyên |
+| 7 | Vận hành | B7.5–B7.6; config `operations`; `monitors.py` | Có PIC, người duyệt, giới hạn chờ, cảnh báo và quy trình dừng/bật lại khớp cấu hình | Chưa | Đã có NV-TUNG, NV-HANH, 1 người, 6 ca/giờ và kênh báo; giới hạn chờ còn `null`, runbook còn trống. Cần bổ sung dừng luồng `issue_refund` liên quan khi phát hiện hoàn sai; xác định nguồn đo từng tín hiệu | Nguyễn Quang Tiệp |
+| 8 | Con người, pháp lý | B4; config `legal`; runbook; C3 theo thẻ | Chặn dữ liệu cá nhân không cần thiết, yêu cầu căn cứ quy lỗi hãng và có người nhận khiếu nại | Chưa | B4 đề xuất chặn `recipient_contact`, `customer_note`; config `legal` vẫn có danh sách chặn rỗng và kiểm tra nguyên nhân `false`. Chưa kiểm chứng payload sau lọc, chưa điền người nhận khiếu nại trong runbook | Nguyễn Quang Tiệp |
+| 9 | Quyết định | A4; tiêu chí và `.lock`; B8; C12 | Quyết định khớp ngưỡng đã ký và bằng chứng; không chọn Tiếp tục khi ngưỡng bắt buộc chưa đạt | Chưa | Có file tiêu chí và `.lock`; cần đối chiếu lịch sử ký trước lần đo. Chưa có mốc prepared và quyết định v1 ở B8; C12 làm sau sự cố | Khương Hoàng Nguyên |
+
+**Ghi chú PIC:** các tên được điền theo vai trong `TEAM.md` và file phân công. Người 3 chưa có tên trong `TEAM.md`, nên dòng 1 chưa đủ yêu cầu PIC có tên; cần bổ sung trước khi chốt B5. Trạng thái phản ánh bằng chứng hiện có, cập nhật khi người phụ trách bàn giao kết quả. Các mục Chưa có rủi ro cao cần đưa vào C10.
 
 Ô "Chưa" có rủi ro cao → chuyển thành một dòng Risk register (Phiếu C mục C10).
 
@@ -252,9 +254,11 @@ Bốn lăng kính (bắt buộc đủ cả bốn; dự án AI hay chết ở ba 
 |---|---|---|---|
 | | Kỹ thuật | | |
 | | Kinh doanh | | |
-| | Con người và vận hành | | |
-| | Pháp lý | | |
+| Giờ cao điểm, lượng ticket cần người duyệt đã vượt sức của một người trực; hàng chờ kéo dài quá 60 phút, khách không được nhận xử lý đúng SLA và nhân viên quá tải, khiến pilot phải tạm dừng. | Con người và vận hành | Căn cứ thiết kế: `data/world.json` → `ops_facts` có 1 người mặc định, 6 ca/người/giờ; `ops_limits.review_sla_minutes = 60`. Kiểm chứng tải thực bằng report hàng chờ: thời gian chờ lâu nhất và số ca ùn. B4 có kịch bản giả định 14 ca đến cùng lúc, ca cuối chờ 130 phút; đây chưa phải kết quả đo. | Đề xuất `operations.reviewers_on_shift = 1`, `review_capacity_per_hour = 6`, `max_queue_wait_minutes = 60`; trong B7.6 quy định NV-TUNG gọi hỗ trợ khi chờ quá 40 phút hoặc hàng chờ vượt 6 ca, quyết định thu hẹp phạm vi khi vượt 60 phút. Đây là cấu hình và hành động runbook, không tự dừng chỉ nhờ ghi điều kiện; cần đo lại năng lực, chi phí và thống nhất với nhóm trước khi chốt. |
+| Thông báo cho hãng đã chuyển cả lời khách tự nhập và thông tin liên hệ người nhận quà ra ngoài; người có dữ liệu bị ảnh hưởng khiếu nại, nhóm phải dừng gửi thông báo để xử lý rò rỉ. | Pháp lý | `agent.py` → payload của `notify_carrier` có `customer_note`, và có thêm `recipient_contact` với đơn quà; ví dụ `O-1024`, `O-1026` trong `data/world.json`. `tools.py` có cơ chế lọc trường cấp đầu theo `legal.pii_fields_blocked_to_third_party`. Kiểm tra payload outbound sau lọc và chỉ số `pii_leaks` trong report; chưa khẳng định sự cố đã xảy ra. | Đề xuất `legal.pii_fields_blocked_to_third_party = ["recipient_contact", "customer_note"]`; phối hợp kỹ sư kiểm thử cả nội dung tự do và thông báo sau lọc. Runbook quy định NV-TUNG tắt `notify_carrier` khi phát hiện lộ dữ liệu, chỉ bật lại sau xác minh và kiểm thử. Rủi ro dữ liệu đã gửi không thể thu hồi hoàn toàn đưa vào C10, xác định người xử lý khiếu nại ở B7.5. |
 | | | | |
+
+**Đóng góp của Nguyễn Quang Tiệp — Vận hành và pháp lý:** hai dòng trên là kịch bản pre-mortem, viết ở thì quá khứ theo đề, không phải báo cáo sự cố thực tế. Các cổng mới là đề xuất; cả nhóm cần bổ sung hai lăng kính còn lại, chọn tổng cộng 2–3 lý do ưu tiên và phân công triển khai trước khi chốt vòng 1.
 
 ---
 
