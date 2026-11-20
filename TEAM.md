@@ -82,6 +82,32 @@ Vai Kỹ sư cổng (code). Phụ trách thiết kế, viết và kiểm thử c
 - Điều học được: Cổng cấp hệ thống (system-level safety gate) nằm ngoài prompt/LLM là chốt chặn bắt buộc để bảo vệ các bất biến nghiệp vụ. Khi LLM gặp sự cố kỹ thuật (lỗi 429 fail-open) hoặc bị tấn công prompt injection, code guard dựa trên Ground Truth (tracking DB, bảng chính sách có hiệu lực) sẽ ngăn chặn hoàn toàn các lệnh xuất tiền sai hoặc phạt oan đối tác mà model/prompt không thể đảm bảo.
 - Điều còn chưa chắc: Cơ chế chuyển duyệt (`Verdict.escalate`) khi chạm trần ngân sách ngày tuy bảo vệ an toàn dòng tiền nhưng lại chuyển rủi ro sang hàng chờ của con người. Nếu lượng vé tăng vọt trong giờ cao điểm mà không có cơ chế điều phối tải động, hàng chờ vận hành vẫn có nguy cơ vượt ngưỡng SLA 60 phút.
 
+## NguyenQuangTiep-2A202603946
+
+### Phần việc phụ trách
+
+Vai Vận hành và pháp lý. Phụ trách câu 2.4 (Phiếu B mục B4 HAZOP vòng 1, B5 checklist go-live 9 nhóm việc), câu 2.10 (B7.5 cổng con người · vận hành · pháp lý và Runbook phần 1–3, B7.6 Giờ cao điểm), câu 3.1 phần HAZOP của thẻ (Phiếu C mục C4) và bổ sung B7.6 sau S4, câu 3.3 giả định môi trường (C5), câu 3.7 (C9 fault tree sau sửa, C10 risk register, C11 cập nhật checklist và Runbook phần 4–5). File: mục `operations` và `legal` trong `config/operating_gates.json`.
+
+### Đóng góp cụ thể
+
+- **HAZOP vòng 1 (B4)** trên `file_carrier_fault`: 4 dòng kỹ thuật (chọn nhầm kiện `parcels[0]`, `delay_cause` rỗng bị mặc định `CARRIER`, ghi lỗi trùng khi khách gửi lại, nhánh `fail_open` khi `policy_check` gặp 429) và 2 dòng ngoài kỹ thuật (người duyệt quá tải, dữ liệu cá nhân trong `notify_carrier`). Các dòng này thành đầu vào cho cổng trong `write_gate` và cho cổng pháp lý.
+- **Checklist go-live (B5)**: 9 nhóm việc, mỗi dòng một PIC có tên, trạng thái dựa trên bằng chứng có thật, không đánh dấu Xong khi chưa có report.
+- **Cổng vận hành và pháp lý (`config/operating_gates.json`)**: PIC `NV-TUNG`, người duyệt `NV-HANH`, SLA chờ 60 phút, kênh `#logix-ops-alerts`, 6 điều kiện dừng; bật `carrier_fault_requires_recorded_cause = true` và chặn `recipient_contact`, `customer_note` gửi cho hãng.
+- **Runbook 1–3 và Giờ cao điểm (B7.5–B7.6)**: bảng trách nhiệm (thêm `NV-OANH` nhận khiếu nại bên thứ ba), 7 tín hiệu có ngưỡng vàng/đỏ lấy từ report, quy trình dừng trong tối đa 5 phút và điều kiện bật lại; ngưỡng gọi người (4 ca chờ hoặc 40 phút) và thu hẹp phạm vi (7 ca, > 60 phút hoặc ≥ 1 ca ùn).
+- **Sau khi bốc S4**: đếm `arrive_min` của 41 ticket theo giờ, thấy 30 ticket dồn trong khung [240,300), nên bỏ cách ước lượng tải bình quân ở B7.6. Viết HAZOP của thẻ trên `issue_refund` (C4), trong đó có nhánh chưa thấy trên trace: `write_gate` trả `modify` trước khi kiểm trần ngày. Viết giả định môi trường ở 3.3: một người duyệt 6 ca/giờ không đỡ được tải dồn ngày sale.
+- **Vòng 2 (C9–C11)**: vẽ fault tree sau sửa với ba nhánh và phần còn hở; risk register 4 dòng có PIC, metric và ngưỡng; cập nhật checklist nhóm 5 và 7; Runbook 4 (thay đổi trần 1.500.000đ → 300.000đ, cảnh báo sớm ở 240.000đ, 1 → 2 người) và Runbook 5 với ba kịch bản cho tuần đầu chạy thử.
+
+### Bằng chứng
+
+- Commit: `60feef2` (bản nháp HAZOP B4), `3d42afd` (câu 2.4), `19f06fb` (cấu hình `operations`/`legal` và runbook), `cb39278`, `df01a09` (câu 3.1, 3.3), `ca4fcf1` (risk register và runbook S4, C10–C11), `0a4631f` (hoàn thiện C9–C11 theo kết quả S4 sau sửa). Merge qua PR #2, #3, #5, #6.
+- Mã lần chạy dùng làm căn cứ: `R-base-after-20261119-162257-b75241` (B7.6: 4.202đ/ticket, ROI 1,38, 0 ca ùn với 1 người), `R-S4-prepared-20261119-163455-565720` (C4/C5: chờ 78 phút, 4 ca ùn, hoàn tự động 422.000đ > 300.000đ), `R-S4-grade-20261119-171849-988b9c` (after: chờ lâu nhất 13 phút, 0 ca ùn, 2 người · 12 ca/giờ, hoàn tự động 292.000đ ≤ 300.000đ, lộ dữ liệu cá nhân 0, ghi oan cho hãng 0).
+- Dòng trong phiếu: Phiếu B mục B4, B5, B7.5, B7.6 (cả phần bổ sung sau S4); Phiếu C mục C4, C5 câu 3.3, C9, C10, C11.
+
+### Exit ticket
+
+- Điều học được: một con số trong config như `reviewers_on_shift = 2` không tạo ra người trực thật. Trên S4, đổi từ 1 người sang 2 người hạ thời gian chờ lâu nhất từ 78 xuống 13 phút và hết ca ùn, nhưng kết quả này chỉ đúng khi người thứ hai có thật trong lịch. Vì vậy điều kiện dừng phải ghi rõ: chưa đủ hai người có thẩm quyền thì chưa mở phạm vi sale 100%.
+- Điều còn chưa chắc: người thứ hai và người dự phòng chưa có tên và lịch trực, và chưa đo được thời gian từ lúc có cảnh báo trên `#logix-ops-alerts` đến lúc người trực phản ứng. Mốc 5 phút để dừng luồng và 1 ngày làm việc để báo hãng/shop là thời hạn quy trình do bàn đặt, chưa được kiểm chứng trong pilot thật.
+
 ## HoVaTen-MSSV
 
 ### Phần việc phụ trách
